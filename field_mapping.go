@@ -9,13 +9,13 @@ type FieldMapping struct {
 	IsAnalyzed bool
 }
 
-func NewDefaultFiledMapping() *FieldMapping {
-	return &FieldMapping{
-		Name:       "",
-		Type:       "",
-		Analyzer:   "a",
-		IsStore:    true,
-		IsIndex:    true,
-		IsAnalyzed: true,
-	}
-}
+// func NewDefaultFiledMapping() *FieldMapping {
+// 	return &FieldMapping{
+// 		Name:       "",
+// 		Type:       "",
+// 		Analyzer:   "a",
+// 		IsStore:    true,
+// 		IsIndex:    true,
+// 		IsAnalyzed: true,
+// 	}
+// }

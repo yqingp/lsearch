@@ -1,12 +1,22 @@
 package lsearch
 
+import (
+// "errors"
+)
+
+const (
+	DefaultShardNum          = -1
+	DefaultReplicatNum       = 2
+	IndexMappingMetaFileName = "lsearch.indexmapping.meta"
+)
+
 type IndexMapping struct {
-	Name            string
-	CreateTime      int64
-	Fields          map[string]*FieldMapping
-	IndexerAnalyzer string
-	SearchAanlyzer  string
-	ReplicaNum      int8
+	Name                   string
+	Fields                 map[string]FieldMapping
+	DefaultIndexerAnalyzer string
+	DeafultSearchAanlyzer  string
+	ReplicaNum             int
+	ShardNum               int
 }
 
 // create :settings => { :number_of_shards => (N || -1(auto)), :number_of_replicas => 2 } , :mappings => {
@@ -25,13 +35,17 @@ type IndexMapping struct {
 //   }
 // }
 
-type IndexMappingTemplate map[string]interface{}
-
 // {:name => "", :fields => [{:name => aa, :}]}
-
-func NewDefaultIndexMapping() *IndexMapping {
-	return &IndexMapping{
-		Name:   "",
-		Fields: make(map[string]*FieldMapping),
+func NewIndexMapping() IndexMapping {
+	return IndexMapping{
+		Name:                   "",
+		ShardNum:               DefaultShardNum,
+		ReplicaNum:             DefaultReplicatNum,
+		DefaultIndexerAnalyzer: "none",
+		DeafultSearchAanlyzer:  "none",
+		Fields:                 make(map[string]FieldMapping),
 	}
 }
+
+// func (self *IndexMapping) AddField(field map[string]string) error {
+// }

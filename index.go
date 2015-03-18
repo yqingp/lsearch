@@ -62,9 +62,9 @@ func NewIndex(name string, fields map[string]interface{}) (index *Index, err err
 	}
 
 	index = &Index{Name: name,
-		Id:         IndexesMap.TotalIndexNum + 1,
-		ShardNum:   DeafultShardNum,
-		ReplicaNum: DefaultReplicaNum,
+		Id: IndexesMap.TotalIndexNum + 1,
+		// ShardNum:   DeafultShardNum,
+		// ReplicaNum: DefaultReplicaNum,
 	}
 
 	initIndexFields(index, fields)

@@ -1,12 +1,10 @@
 package lsearch
 
 type FieldMapping struct {
-	Name       string
-	Type       string
-	Analyzer   string
-	IsStore    bool
-	IsIndex    bool
-	IsAnalyzed bool
+	Name     string
+	Type     FieldType
+	Analyzer string
+	IsStore  bool
 }
 
 // func NewDefaultFiledMapping() *FieldMapping {

@@ -1,11 +1,14 @@
 package lsearch
 
+type FieldType uint8
+
 const (
-	STRING uint8 = iota
+	STRING FieldType = iota
 	INTEGER
 	FLOAT
 	TIME
 	DATE
 	ARRAY
 	HASH
+	TEXT
 )

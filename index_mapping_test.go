@@ -11,7 +11,7 @@ func TestNewIndexMapping(t *testing.T) {
 	x.ShardNum = 8
 	x.ReplicaNum = 1
 	x.DefaultIndexerAnalyzer = "none"
-	x.DefaultIndexerAnalyzer = "none"
-	x.Fields["f1"] = FieldMapping{Name: "f1", Type: "INTEGER"}
+	x.DeafultSearchAanlyzer = "none"
+	x.Fields["f1"] = FieldMapping{Name: "f1", Type: INTEGER}
 	fmt.Println(x)
 }

@@ -3,6 +3,7 @@ package lsearch
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 )
 
@@ -45,6 +46,11 @@ func InitConfig(filepath string) (*Config, error) {
 	config.StorePath = DefaultStorePath
 
 	return config, nil
+}
+
+func (c *Config) String() string {
+	return fmt.Sprintf("StorePath:[%s]", c.StorePath)
+
 }
 
 // func (c *Config) InitStorePath() {

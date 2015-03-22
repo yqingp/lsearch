@@ -21,6 +21,7 @@ type Config struct {
 	StorePath string `json:"store_path"`
 }
 
+// if filepath is nil  then use default file path `DefaultStorePath`
 func InitConfig(filepath string) (*Config, error) {
 
 	config := &Config{}

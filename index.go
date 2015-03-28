@@ -1,6 +1,5 @@
 package lsearch
 
-import (
 // "bytes"
 // "encoding/binary"
 // "errors"
@@ -8,7 +7,6 @@ import (
 // "log"
 // "os"
 // "time"
-)
 
 // type IndexField struct {
 // 	Id          uint16

@@ -1,4 +1,4 @@
 package lsearch
 
-type Searcher struct {
+type searcher struct {
 }

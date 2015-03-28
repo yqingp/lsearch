@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
 )
 
 const (
@@ -17,14 +18,14 @@ var (
 	ERROR_CONFIG_Dbpath_Not_Set   = errors.New("dbpath not set")
 )
 
-type Config struct {
-	StorePath string `json:"store_path"`
+type config struct {
+	storePath string `json:"store_path"`
 }
 
 // if filepath is nil  then use default file path `DefaultStorePath`
-func InitConfig(filepath string) (*Config, error) {
+func InitConfig(filepath string) (*config, error) {
 
-	config := &Config{}
+	config := &config{}
 
 	if filepath != "" {
 
@@ -49,11 +50,13 @@ func InitConfig(filepath string) (*Config, error) {
 	return config, nil
 }
 
-func (c *Config) String() string {
+func (c *config) String() string {
 	return fmt.Sprintf("StorePath:[%s]", c.StorePath)
-
 }
 
-// func (c *Config) InitStorePath() {
-
-// }
+func (c *config) InitStorePath() {
+	if err := os.MkdirAll(c.StorePath, 0777); err != nil {
+		fmt.Println(err)
+		return
+	}
+}

@@ -3,6 +3,7 @@ package lsearch
 import (
 	"fmt"
 	"testing"
+	// "./config.go"
 )
 
 func TestConfigInit(t *testing.T) {
@@ -12,4 +13,5 @@ func TestConfigInit(t *testing.T) {
 	} else {
 		fmt.Println(config)
 	}
+	config.InitStorePath()
 }

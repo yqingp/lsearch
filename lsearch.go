@@ -1,16 +1,14 @@
 package lsearch
 
-import (
 // "github.com/yqingp/lsearch/"
-)
 
 type LSearch struct {
-	dbpath   string
-	indexer  *Indexer
-	searcher *Searcher
+	config   *config
+	indexer  *indexer
+	searcher *searcher
 }
 
-func NewLSearch() *LSearch {
+func NewLSearch(filepath string) *LSearch {
 	return &LSearch{
 		dbpath:   "",
 		indexer:  nil,

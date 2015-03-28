@@ -2,7 +2,6 @@ package lsearch
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -12,18 +11,19 @@ const (
 	DefaultStorePath = "./lsearch_store"
 )
 
-var (
-	ERROR_CONFIG_Open_File_Error  = errors.New("open config file error")
-	ERROR_CONFIG_Json_Parse_Error = errors.New("json parse config file error")
-	ERROR_CONFIG_Dbpath_Not_Set   = errors.New("dbpath not set")
-)
+// var (
+// 	ERROR_CONFIG_OPEN_FILE       = errors.New("open config file error")
+// 	ERROR_CONFIG_JSON_PARSE      = errors.New("json parse config file error")
+// 	ERROR_CONFIG_STORE_PATH      = errors.New("store path not set")
+// 	ERROR_CONGIF_MAKE_STORE_PATH = errors.New("mkdir store path  error")
+// )
 
 type config struct {
 	storePath string `json:"store_path"`
 }
 
 // if filepath is nil  then use default file path `DefaultStorePath`
-func InitConfig(filepath string) (*config, error) {
+func newConfig(filepath string) *config {
 
 	config := &config{}
 
@@ -32,31 +32,30 @@ func InitConfig(filepath string) (*config, error) {
 		data, err := ioutil.ReadFile(filepath)
 
 		if err != nil {
-			return nil, ERROR_CONFIG_Open_File_Error
+			logger.Fatal(err)
 		}
 
 		if err := json.Unmarshal(data, config); err != nil {
-			return nil, ERROR_CONFIG_Json_Parse_Error
+			logger.Fatal(err)
 		}
 
-		if config.StorePath == "" {
-			return nil, ERROR_CONFIG_Dbpath_Not_Set
+		if config.storePath == "" {
+			logger.Fatal(err)
 		}
 
-		return config, nil
+		return config
 	}
-	config.StorePath = DefaultStorePath
+	config.storePath = DefaultStorePath
 
-	return config, nil
+	return config
 }
 
 func (c *config) String() string {
-	return fmt.Sprintf("StorePath:[%s]", c.StorePath)
+	return fmt.Sprintf("StorePath:[%s]", c.storePath)
 }
 
-func (c *config) InitStorePath() {
-	if err := os.MkdirAll(c.StorePath, 0777); err != nil {
-		fmt.Println(err)
-		return
+func (c *config) initStorePath() {
+	if err := os.MkdirAll(c.storePath, 0777); err != nil {
+		logger.Fatal(err)
 	}
 }

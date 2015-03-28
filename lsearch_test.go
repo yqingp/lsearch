@@ -4,6 +4,7 @@ import (
 	"testing"
 )
 
-func MainTest(t *testing.T) {
-	ls := NewLSearch("")
+func TestLsearch(t *testing.T) {
+	lsearch := NewLSearch("")
+	lsearch.Init()
 }

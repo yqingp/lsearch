@@ -1,6 +1,9 @@
 package index
 
 import (
+	// "github.com/yqingp/lsearch/analyzer"
+	// "github.com/yqingp/lsearch/field"
+	"encoding/json"
 	"os"
 	"path/filepath"
 )
@@ -62,5 +65,19 @@ func (self *IndexMeta) dump() error {
 	indexMetaDump.name = self.index.name
 	indexMetaDump.defaultAnalyzerName = self.index.defaultAnalyzer.Name
 	indexMetaDump.fields = []IndexMetaFieldDump{}
+
+	for _, v := range self.index.fields {
+		idf := IndexMetaFieldDump{}
+		idf.name = v.Name
+		idf.createdAt = v.CreatedAt
+		idf.fieldType = int(v.FieldType)
+		idf.indexAnalyzerName = v.IndexAnalyzer.Name
+		idf.searchAnalyzerName = v.SearchAnalyzer.Name
+		idf.isIndex = v.IsIndex
+		indexMetaDump.fields = append(indexMetaDump.fields, idf)
+	}
+
+	t, _ := json.Marshal(indexMetaDump)
+	self.file.Write(t)
 	return nil
 }

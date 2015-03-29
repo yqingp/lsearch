@@ -11,6 +11,7 @@ type Engine struct {
 	isInit         bool
 	indexes        []*Index
 	indexStorePath string
+	maxIndexId     int
 }
 
 func (engine *Engine) Init(storePath string) error {

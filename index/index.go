@@ -3,7 +3,6 @@ package index
 import (
 	"github.com/yqingp/lsearch/analyzer"
 	"github.com/yqingp/lsearch/field"
-	"path/filepath"
 )
 
 const (
@@ -11,19 +10,21 @@ const (
 )
 
 type Index struct {
+	id              int
+	name            string
 	indexMeta       *IndexMeta
 	defaultAnalyzer *analyzer.Analyzer
 	fields          []*field.Filed
 	fieldNum        int
 	documentNum     int
+	indexPath       string
 }
 
 func recoverIndex(indexPath string) (*Index, error) {
-	index := &Index{
-		indexMeta: newIndexMeta(),
-	}
-
-	isExistMeta, err := index.indexMeta.recoverFromMetaFile(filepath.Join(indexPath, MetaFileName))
+	index := &Index{}
+	index.indexMeta = newIndexMeta(index)
+	index.indexPath = indexPath
+	isExistMeta, err := index.indexMeta.recoverMeta()
 	if !isExistMeta {
 		return nil, nil
 	}

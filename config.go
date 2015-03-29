@@ -32,15 +32,15 @@ func newConfig(filepath string) *config {
 		data, err := ioutil.ReadFile(filepath)
 
 		if err != nil {
-			logger.Fatal(err)
+			Logger.Fatal(err)
 		}
 
 		if err := json.Unmarshal(data, config); err != nil {
-			logger.Fatal(err)
+			Logger.Fatal(err)
 		}
 
 		if config.storePath == "" {
-			logger.Fatal(err)
+			Logger.Fatal(err)
 		}
 
 		return config
@@ -56,6 +56,6 @@ func (c *config) String() string {
 
 func (c *config) initStorePath() {
 	if err := os.MkdirAll(c.storePath, 0777); err != nil {
-		logger.Fatal(err)
+		Logger.Fatal(err)
 	}
 }

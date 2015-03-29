@@ -4,23 +4,25 @@ package lsearch
 
 import (
 	"fmt"
+	"github.com/yqingp/lsearch/index"
 )
 
 type LSearch struct {
-	config   *config
-	indexer  *indexer
-	searcher *searcher
+	config *config
+	engine *index.Engine
 }
 
 func NewLSearch(configFilePath string) *LSearch {
 	return &LSearch{
-		config:   newConfig(configFilePath),
-		indexer:  nil,
-		searcher: nil,
+		config: newConfig(configFilePath),
+		engine: &index.Engine{},
 	}
 }
 
-func (lsearch *LSearch) Init() {
+func (this *LSearch) Init() {
 	fmt.Println("init")
-	lsearch.config.initStorePath()
+	this.config.initStorePath()
+	if err := this.engine.Init(this.config.storePath); err != nil {
+		Logger.Fatal(err)
+	}
 }

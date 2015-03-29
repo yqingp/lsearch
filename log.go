@@ -5,4 +5,4 @@ import (
 	"os"
 )
 
-var logger = log.New(os.Stderr, "LSearch: ", log.Lshortfile|log.Ldate|log.Ltime)
+var Logger = log.New(os.Stderr, "LSearch: ", log.Lshortfile|log.Ldate|log.Ltime)

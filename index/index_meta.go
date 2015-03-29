@@ -1,7 +1,7 @@
 package index
 
 import (
-	"fmt"
+	"os"
 )
 
 type IndexMeta struct {
@@ -15,6 +15,10 @@ func newIndexMeta() *IndexMeta {
 	return &IndexMeta{}
 }
 
-func (i *IndexMeta) recoverFromMetaFile(metaFilePath string) {
-	fmt.Println(metaFilePath)
+func (i *IndexMeta) recoverFromMetaFile(metaFilePath string) (bool, error) {
+	if _, err := os.Stat(metaFilePath); !os.IsExist(err) {
+		return false, nil
+	}
+
+	return true, nil
 }

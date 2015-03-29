@@ -2,7 +2,7 @@ package index
 
 import (
 	"errors"
-	// "fmt"
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -30,12 +30,15 @@ func (engine *Engine) Init(storePath string) error {
 			continue
 		}
 
-		indexPath, err := filepath.Abs(fi.Name())
-		if err != nil {
-			return err
-		}
+		indexPath := filepath.Join(storePath, fi.Name())
 
-		recoverIndex(indexPath)
+		index, _ := recoverIndex(indexPath)
+		if index == nil {
+			fmt.Println(indexPath)
+			fmt.Println("blank dir")
+			err := os.RemoveAll(indexPath)
+			fmt.Println(err)
+		}
 
 	}
 	return err

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 )
 
 const (
@@ -22,14 +23,14 @@ type config struct {
 	storePath string `json:"store_path"`
 }
 
-// if filepath is nil  then use default file path `DefaultStorePath`
-func newConfig(filepath string) *config {
+// if basePath is nil  then use default file path `DefaultStorePath`
+func newConfig(basePath string) *config {
 
 	config := &config{}
 
-	if filepath != "" {
+	if basePath != "" {
 
-		data, err := ioutil.ReadFile(filepath)
+		data, err := ioutil.ReadFile(basePath)
 
 		if err != nil {
 			Logger.Fatal(err)
@@ -42,11 +43,12 @@ func newConfig(filepath string) *config {
 		if config.storePath == "" {
 			Logger.Fatal(err)
 		}
-
-		return config
+	} else {
+		config.storePath = DefaultStorePath
 	}
-	config.storePath = DefaultStorePath
 
+	config.storePath, _ = filepath.Abs(config.storePath)
+	fmt.Println(config.storePath)
 	return config
 }
 

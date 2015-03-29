@@ -2,7 +2,9 @@ package index
 
 import (
 	"errors"
+	// "fmt"
 	"os"
+	"path/filepath"
 )
 
 type Engine struct {
@@ -26,8 +28,15 @@ func (engine *Engine) Init(storePath string) error {
 	for _, fi := range list {
 		if !fi.IsDir() {
 			continue
-			// fi.
 		}
+
+		indexPath, err := filepath.Abs(fi.Name())
+		if err != nil {
+			return err
+		}
+
+		recoverIndex(indexPath)
+
 	}
 	return err
 }

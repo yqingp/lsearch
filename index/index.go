@@ -12,6 +12,8 @@ const (
 type Index struct {
 	id              int
 	name            string
+	createdAt       int64
+	updatedAt       int64
 	indexMeta       *IndexMeta
 	defaultAnalyzer *analyzer.Analyzer
 	fields          []*field.Filed

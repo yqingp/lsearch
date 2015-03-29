@@ -14,7 +14,7 @@ type IndexMeta struct {
 type IndexMetaFieldDump struct {
 	id                 int
 	name               string
-	createdAt          int    `json:created_at`
+	createdAt          int64  `json:created_at`
 	fieldType          int    `json:field_type`
 	searchAnalyzerName string `json:search_analyzer_name`
 	indexAnalyzerName  string `json:index_analyzer_name`
@@ -25,8 +25,8 @@ type IndexMetaDump struct {
 	id                  int
 	name                string
 	defaultAnalyzerName string `json:default_analyzer_name`
-	createdAt           int    `json:created_at`
-	updatedAt           int    `json:updated_at`
+	createdAt           int64  `json:created_at`
+	updatedAt           int64  `json:updated_at`
 	fields              []IndexMetaFieldDump
 }
 
@@ -52,6 +52,15 @@ func (self *IndexMeta) recoverMeta() (bool, error) {
 }
 
 func (self *IndexMeta) dump() error {
-
+	if self.index == nil {
+		return nil
+	}
+	indexMetaDump := IndexMetaDump{}
+	indexMetaDump.id = self.index.id
+	indexMetaDump.createdAt = self.index.createdAt
+	indexMetaDump.updatedAt = self.index.updatedAt
+	indexMetaDump.name = self.index.name
+	indexMetaDump.defaultAnalyzerName = self.index.defaultAnalyzer.Name
+	indexMetaDump.fields = []IndexMetaFieldDump{}
 	return nil
 }

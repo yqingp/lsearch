@@ -1,6 +1,8 @@
 package index
 
 import (
+	"github.com/yqingp/lsearch/analyzer"
+	"github.com/yqingp/lsearch/field"
 	"path/filepath"
 )
 
@@ -9,7 +11,11 @@ const (
 )
 
 type Index struct {
-	indexMeta *IndexMeta
+	indexMeta       *IndexMeta
+	defaultAnalyzer *analyzer.Analyzer
+	fields          []*field.Filed
+	fieldNum        int
+	documentNum     int
 }
 
 func recoverIndex(indexPath string) (*Index, error) {

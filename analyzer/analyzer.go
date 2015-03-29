@@ -1,1 +1,4 @@
-package lsearch
+package analyzer
+
+type Analyzer struct {
+}

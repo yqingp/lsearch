@@ -1,4 +1,4 @@
-package lsearch
+package field
 
 type FieldType uint8
 

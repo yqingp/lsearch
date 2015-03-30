@@ -4,6 +4,7 @@ import (
 	// "github.com/yqingp/lsearch/analyzer"
 	// "github.com/yqingp/lsearch/field"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 )
@@ -44,12 +45,16 @@ func newIndexMeta(index *Index) *IndexMeta {
 func (self *IndexMeta) recoverMeta() (bool, error) {
 	metaFileName := filepath.Join(self.index.indexPath, MetaFileName)
 	if _, err := os.Stat(metaFileName); !os.IsExist(err) {
-		return false, nil
+		return false, err
 	}
 
 	self.fileName = metaFileName
 
-	self.file, _ = os.OpenFile(self.fileName, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0777)
+	var err error
+	self.file, err = os.OpenFile(self.fileName, os.O_CREATE|os.O_RDWR|os.O_SYNC, 0664)
+	if err != nil {
+		return false, err
+	}
 
 	return true, nil
 }

@@ -13,7 +13,7 @@ import (
 const (
     MMTRIE_PATH_MAX  = 256
     MMTRIE_LINE_MAX  = 256
-    MMTRIE_BASE_NUM  = 1000000
+    MMTRIE_BASE_NUM  = 500000
     MMTRIE_NODES_MAX = 1000000000
     MMTRIE_WORD_MAX  = 4096
 )
@@ -23,6 +23,7 @@ type MmtrieState struct {
     current uint64
     total   uint64
     left    uint64
+    list    [MMTRIE_LINE_MAX]MmtrieList
 }
 
 type MmtrieList struct {
@@ -31,11 +32,10 @@ type MmtrieList struct {
 }
 
 type MmtrieNode struct {
-    key     byte
+    key     uint8
     nchilds uint8
-    data    uint64
-    childs  uint64
-    list    [MMTRIE_LINE_MAX]MmtrieList
+    data    int
+    childs  int
 }
 
 type Mmtrie struct {
@@ -97,18 +97,17 @@ func (m *Mmtrie) Init() error {
 
     if fstat.Size() == 0 {
         m.fileSize = int64(MmtrieStateSizeOf) + MMTRIE_BASE_NUM*int64(MmtrieNodeSizeOf)
-        fmt.Println(m.fileSize)
-        // if err := f.Truncate(m.fileSize); err != nil {
-        // return err
-        // }
-        // m.state.total = MMTRIE_BASE_NUM
-        // m.state.left = MMTRIE_BASE_NUM - MMTRIE_LINE_MAX
-        // m.state.current = MMTRIE_LINE_MAX
+        if err := f.Truncate(m.fileSize); err != nil {
+            return err
+        }
+        m.state.total = MMTRIE_BASE_NUM
+        m.state.left = MMTRIE_BASE_NUM - MMTRIE_LINE_MAX
+        m.state.current = MMTRIE_LINE_MAX
     }
 
     return nil
 }
 
-func (m *MmtrieState) ToS() {
-    fmt.Println(m)
+func (m *Mmtrie) ToS() {
+    fmt.Println(m.state)
 }

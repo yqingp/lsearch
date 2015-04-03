@@ -1,10 +1,12 @@
 package util
 
 import (
+    "errors"
     "fmt"
+    . "github.com/yqingp/lsearch/mmap"
     "os"
     "sync"
-    "syscall"
+    // "syscall"
     "unsafe"
 )
 
@@ -37,33 +39,74 @@ type MmtrieNode struct {
 }
 
 type Mmtrie struct {
-    state    *MmtrieState
-    nodes    []*MmtrieNode
-    mmap     MMAP
-    size     uint64
-    old      uint64
-    fileSize uint64
-    fd       int
-    bits     int
-    mutex    *sync.Mutex
+    state       *MmtrieState
+    nodes       []*MmtrieNode
+    nodesOffset uint64
+    mmap        Mmap
+    size        int
+    old         uint64
+    fileSize    int64
+    fd          int
+    bits        int
+    mutex       *sync.Mutex
+    isInit      bool
+    filename    string
 }
-type MMAP []byte
 
-func MmapFile(f *os.File) []byte {
-    data, err := syscall.Mmap(int(f.Fd()), 0, MMTRIE_NODES_MAX, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
-    if err != nil {
-        fmt.Println(err)
+var (
+    t                 MmtrieState
+    t1                MmtrieNode
+    MmtrieNodeSizeOf  = int(unsafe.Sizeof(t1))
+    MmtrieStateSizeOf = int(unsafe.Sizeof(t))
+)
+
+func NewMmtrie(filename string) (*Mmtrie, error) {
+    if filename == "" {
+        return nil, errors.New("file name is blank")
+    }
+    return &Mmtrie{filename: filename}, nil
+}
+
+func (m *Mmtrie) Init() error {
+    if m.isInit {
+        return errors.New("is inited")
     }
 
-    return data
-}
+    f, err := os.OpenFile(m.filename, os.O_CREATE|os.O_RDWR, 0644)
+    if err != nil {
+        return err
+    }
+    m.fd = int(f.Fd())
 
-func Unmmap(f *os.File) {
+    fstat, err := os.Stat(m.filename)
+    if err != nil {
+        return err
+    }
 
-}
+    if m.mmap == nil {
+        m.size = MmtrieStateSizeOf + MMTRIE_NODES_MAX*MmtrieNodeSizeOf
+        mp, err := MmapFile(m.fd, m.size)
+        if err != nil {
+            return err
+        }
+        m.mmap = mp
+        m.state = (*MmtrieState)(unsafe.Pointer(&m.mmap[0]))
+        // addr := &m.mmap[MmtrieStateSizeOf]
+        m.nodesOffset = uint64(MmtrieStateSizeOf)
+    }
 
-func (m MMAP) GetState() *MmtrieState {
-    return (*MmtrieState)(unsafe.Pointer(&m[0]))
+    if fstat.Size() == 0 {
+        m.fileSize = int64(MmtrieStateSizeOf) + MMTRIE_BASE_NUM*int64(MmtrieNodeSizeOf)
+        fmt.Println(m.fileSize)
+        // if err := f.Truncate(m.fileSize); err != nil {
+        // return err
+        // }
+        // m.state.total = MMTRIE_BASE_NUM
+        // m.state.left = MMTRIE_BASE_NUM - MMTRIE_LINE_MAX
+        // m.state.current = MMTRIE_LINE_MAX
+    }
+
+    return nil
 }
 
 func (m *MmtrieState) ToS() {

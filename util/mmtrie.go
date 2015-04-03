@@ -12,22 +12,22 @@ import (
 const (
     MMTRIE_PATH_MAX  = 256
     MMTRIE_LINE_MAX  = 256
-    MMTRIE_BASE_NUM  = 10000
-    MMTRIE_NODES_MAX = 1000000
+    MMTRIE_BASE_NUM  = 1000
+    MMTRIE_NODES_MAX = 100000
     MMTRIE_WORD_MAX  = 4096
 )
 
 type MmtrieState struct {
-    id      uint64
-    current uint64
-    total   uint64
-    left    uint64
+    id      int
+    current int
+    total   int
+    left    int
     list    [MMTRIE_LINE_MAX]MmtrieList
 }
 
 type MmtrieList struct {
-    count uint64
-    head  uint64
+    count int
+    head  int
 }
 
 type MmtrieNode struct {
@@ -42,8 +42,8 @@ type Mmtrie struct {
     nodes    []MmtrieNode
     mmap     Mmap
     size     int
-    old      uint64
-    fileSize int64
+    old      int64
+    filesize int64
     fd       int
     bits     int
     mutex    *sync.Mutex
@@ -95,8 +95,8 @@ func (m *Mmtrie) Init() error {
     }
 
     if fstat.Size() == 0 {
-        m.fileSize = int64(MmtrieStateSizeOf) + MMTRIE_BASE_NUM*int64(MmtrieNodeSizeOf)
-        if err := f.Truncate(m.fileSize); err != nil {
+        m.filesize = int64(MmtrieStateSizeOf) + MMTRIE_BASE_NUM*int64(MmtrieNodeSizeOf)
+        if err := f.Truncate(m.filesize); err != nil {
             return err
         }
         m.state.total = MMTRIE_BASE_NUM
@@ -108,20 +108,123 @@ func (m *Mmtrie) Init() error {
     return nil
 }
 
-func (self *Mmtrie) Add(key []byte) {
+func (self *Mmtrie) pop(num int) (int, error) {
+    pos := -1
+
+    if num > 0 && num <= MMTRIE_LINE_MAX && self.state != nil && self.nodes != nil {
+        if self.state.list[num-1].count > 0 {
+            pos = self.state.list[num-1].head
+            self.state.list[num-1].head = self.nodes[pos].childs
+            self.state.list[num-1].count--
+        } else {
+            if self.state.left < num {
+                if err := self.increment(); err != nil {
+                    return pos, err
+                }
+            }
+            pos = self.state.current
+            self.state.current += num
+            self.state.left -= num
+        }
+    }
+
+    return pos, nil
+}
+
+func (self *Mmtrie) increment() error {
+    if self.filesize < int64(self.size) {
+        self.old = self.filesize
+        self.filesize += int64(MMTRIE_BASE_NUM * MmtrieNodeSizeOf)
+        if err := os.Truncate(self.filename, self.filesize); err != nil {
+            return err
+        }
+        self.state.total += MMTRIE_BASE_NUM
+        self.state.left += MMTRIE_BASE_NUM
+    }
+
+    return nil
+}
+
+func (self *MmtrieNode) setKey(k byte) {
+    self.key = k
+}
+
+func (self *MmtrieNode) nodeCopy(old MmtrieNode) {
+    self.childs = old.childs
+    self.data = old.data
+    self.key = old.key
+    self.nchilds = old.nchilds
+}
+
+func (self *Mmtrie) Add(key []byte) int {
+    ret := -1
+
     if key == nil {
-        return
+        return ret
     }
 
     self.mutex.Lock()
     defer self.mutex.Unlock()
 
-    // var i int = 0
+    i := key[0]
+    m := 1
 
-    for p, _ := range key {
-        fmt.Println(p)
-        // i := 0
+    n := 0
+    z := 0
+    j := 0
+    k := 0
+
+    pos := 0
+
+    _ = n
+    _ = z
+    _ = pos
+    _ = j
+    _ = k
+
+    childs := &MmtrieNode{}
+    _ = childs
+
+    size := len(key)
+    for m < size {
+        x := 0
+        if self.nodes[i].nchilds > 0 && self.nodes[i].childs >= MMTRIE_LINE_MAX {
+
+        }
+        if x < MMTRIE_LINE_MAX || self.nodes[x].key != key[m] {
+            n = int(self.nodes[i].nchilds) + 1
+            z = self.nodes[i].childs
+            pos, _ = self.pop(n)
+            if pos < MMTRIE_LINE_MAX || pos > self.state.current {
+                return ret
+            }
+            childs = &(self.nodes[pos])
+            if x == 0 {
+                childs.setKey(key[m])
+                j = pos
+            } else if x == -1 {
+                childs.setKey(key[m])
+                k = 1
+                for k < n {
+                    tc := &(self.nodes[pos+k])
+                    tc.nodeCopy(self.nodes[z])
+                    z++
+                    k++
+                }
+                j = pos
+            }
+        }
+
+        m++
     }
+
+    if self.nodes[i].data == 0 {
+        self.state.id++
+        self.nodes[i].data = self.state.id
+        ret = self.nodes[i].data
+    }
+
+    return ret
 }
 
 func (m *Mmtrie) ToS() {

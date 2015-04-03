@@ -14,10 +14,6 @@ func TestMm(t *testing.T) {
     if err != nil {
         t.Error(err)
     }
-    trie.ToS() // f, _ := os.OpenFile("a.txt", os.O_RDWR|os.O_CREATE, 0666)
-    // os.Truncate("a.txt", MMTRIE_BASE_NUM)
-    // var data MMAP = MmapFile(f)
-    // a := (*MmtrieState)(unsafe.Pointer(&data[0]))
-    // t.Log(a)
-    // f.Close()
+    a := trie.Add([]byte("哈哈11"))
+    t.Log(a)
 }

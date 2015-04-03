@@ -3,6 +3,7 @@ package util
 import (
     "fmt"
     "os"
+    "sync"
     "syscall"
     "unsafe"
 )
@@ -16,12 +17,36 @@ const (
 )
 
 type MmtrieState struct {
-    Id      uint64
-    Current uint64
-    Total   uint64
-    Left    uint64
+    id      uint64
+    current uint64
+    total   uint64
+    left    uint64
 }
 
+type MmtrieList struct {
+    count uint64
+    head  uint64
+}
+
+type MmtrieNode struct {
+    key     byte
+    nchilds uint8
+    data    uint64
+    childs  uint64
+    list    [MMTRIE_LINE_MAX]MmtrieList
+}
+
+type Mmtrie struct {
+    state    *MmtrieState
+    nodes    []*MmtrieNode
+    mmap     MMAP
+    size     uint64
+    old      uint64
+    fileSize uint64
+    fd       int
+    bits     int
+    mutex    *sync.Mutex
+}
 type MMAP []byte
 
 func MmapFile(f *os.File) []byte {

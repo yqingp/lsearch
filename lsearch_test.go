@@ -5,6 +5,6 @@ import (
 )
 
 func TestLsearch(t *testing.T) {
-	lsearch := NewLSearch("")
-	lsearch.Init()
+	// lsearch := NewLSearch("")
+	// lsearch.Init()
 }

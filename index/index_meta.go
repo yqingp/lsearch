@@ -4,7 +4,7 @@ import (
 	// "github.com/yqingp/lsearch/analyzer"
 	// "github.com/yqingp/lsearch/field"
 	"encoding/json"
-	"errors"
+	// "errors"
 	"os"
 	"path/filepath"
 )

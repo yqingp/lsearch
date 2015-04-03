@@ -6,15 +6,14 @@ import (
     . "github.com/yqingp/lsearch/mmap"
     "os"
     "sync"
-    // "syscall"
     "unsafe"
 )
 
 const (
     MMTRIE_PATH_MAX  = 256
     MMTRIE_LINE_MAX  = 256
-    MMTRIE_BASE_NUM  = 500000
-    MMTRIE_NODES_MAX = 1000000000
+    MMTRIE_BASE_NUM  = 10000
+    MMTRIE_NODES_MAX = 1000000
     MMTRIE_WORD_MAX  = 4096
 )
 
@@ -39,18 +38,17 @@ type MmtrieNode struct {
 }
 
 type Mmtrie struct {
-    state       *MmtrieState
-    nodes       []*MmtrieNode
-    nodesOffset uint64
-    mmap        Mmap
-    size        int
-    old         uint64
-    fileSize    int64
-    fd          int
-    bits        int
-    mutex       *sync.Mutex
-    isInit      bool
-    filename    string
+    state    *MmtrieState
+    nodes    []MmtrieNode
+    mmap     Mmap
+    size     int
+    old      uint64
+    fileSize int64
+    fd       int
+    bits     int
+    mutex    *sync.Mutex
+    isInit   bool
+    filename string
 }
 
 var (
@@ -91,8 +89,9 @@ func (m *Mmtrie) Init() error {
         }
         m.mmap = mp
         m.state = (*MmtrieState)(unsafe.Pointer(&m.mmap[0]))
-        // addr := &m.mmap[MmtrieStateSizeOf]
-        m.nodesOffset = uint64(MmtrieStateSizeOf)
+        addr := &m.mmap[MmtrieStateSizeOf]
+        pointer := (*[MMTRIE_NODES_MAX]MmtrieNode)(unsafe.Pointer(addr))[:MMTRIE_NODES_MAX]
+        m.nodes = pointer
     }
 
     if fstat.Size() == 0 {
@@ -105,9 +104,26 @@ func (m *Mmtrie) Init() error {
         m.state.current = MMTRIE_LINE_MAX
     }
 
+    m.mutex = &sync.Mutex{}
     return nil
 }
 
+func (self *Mmtrie) Add(key []byte) {
+    if key == nil {
+        return
+    }
+
+    self.mutex.Lock()
+    defer self.mutex.Unlock()
+
+    // var i int = 0
+
+    for p, _ := range key {
+        fmt.Println(p)
+        // i := 0
+    }
+}
+
 func (m *Mmtrie) ToS() {
-    fmt.Println(m.state)
+    fmt.Println(len(m.nodes))
 }

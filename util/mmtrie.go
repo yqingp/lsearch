@@ -178,11 +178,14 @@ func (self *Mmtrie) Add(key []byte) int {
 
     m, n, z, j, k, min, max, pos := 1, 0, 0, 0, 0, 0, 0, 0
 
+    _ = min
+    _ = max
     size := len(key)
 
     for m < size {
         x := 0
         if self.nodes[i].nchilds > 0 && self.nodes[i].childs >= MMTRIE_LINE_MAX {
+            fmt.Println("check")
             min = self.nodes[i].childs
             max = min + int(self.nodes[i].nchilds) - 1
             if key[m] == self.nodes[min].key {
@@ -215,22 +218,27 @@ func (self *Mmtrie) Add(key []byte) int {
             n = int(self.nodes[i].nchilds) + 1
             z = self.nodes[i].childs
             pos, _ = self.pop(n)
+            fmt.Println("pos=%d", pos)
             if pos < MMTRIE_LINE_MAX || pos > self.state.current {
+                fmt.Println(0)
                 return -3
             }
             if x == 0 {
+                fmt.Println(1)
                 self.nodes[pos].setKey(key[m])
                 j = pos
             } else if x == -1 {
+                fmt.Println(2)
                 self.nodes[pos].setKey(key[m])
                 k = 1
                 for k < n {
-                    self.nodes[pos+k].nodeCopy(self.nodes[z])
+                    (&self.nodes[pos+k]).nodeCopy(self.nodes[z])
                     z++
                     k++
                 }
                 j = pos
             } else if x == 1 {
+                fmt.Println(3)
                 k = 0
                 for k < (n - 1) {
                     self.nodes[pos+k].nodeCopy(self.nodes[z])
@@ -240,6 +248,7 @@ func (self *Mmtrie) Add(key []byte) int {
                 self.nodes[pos+k].setKey(key[m])
                 j = pos + k
             } else {
+                fmt.Println(4)
                 k = 0
                 for (self.nodes[z].key) < key[m] {
                     self.nodes[pos+k].nodeCopy(self.nodes[z])
@@ -260,7 +269,7 @@ func (self *Mmtrie) Add(key []byte) int {
             self.push(int(self.nodes[i].nchilds), self.nodes[i].childs)
             self.nodes[i].nchilds++
             self.nodes[i].childs = pos
-            j = j
+            i = j
         } else {
             i = x
         }

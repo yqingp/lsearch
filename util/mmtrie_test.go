@@ -13,7 +13,9 @@ func TestMm(t *testing.T) {
     if err != nil {
         t.Error(err)
     }
-    a := trie.Add([]byte("哈哈11"))
-    //
-    t.Log(a)
+    v, err := trie.Add([]byte("哈哈11"))
+    if err != nil {
+        t.Fatal(err)
+    }
+    t.Log(v)
 }

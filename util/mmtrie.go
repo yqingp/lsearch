@@ -2,7 +2,6 @@ package util
 
 import (
     "errors"
-    "fmt"
     . "github.com/yqingp/lsearch/mmap"
     "os"
     "sync"
@@ -164,11 +163,11 @@ func (self *MmtrieNode) nodeCopy(old MmtrieNode) {
     self.nchilds = old.nchilds
 }
 
-func (self *Mmtrie) Add(key []byte) int {
+func (self *Mmtrie) Add(key []byte) (int, error) {
     ret := -1
 
     if key == nil {
-        return ret
+        return ret, errors.New("key is blank")
     }
 
     self.mutex.Lock()
@@ -178,14 +177,13 @@ func (self *Mmtrie) Add(key []byte) int {
 
     m, n, z, j, k, min, max, pos := 1, 0, 0, 0, 0, 0, 0, 0
 
-    _ = min
-    _ = max
     size := len(key)
+
+    var err error
 
     for m < size {
         x := 0
         if self.nodes[i].nchilds > 0 && self.nodes[i].childs >= MMTRIE_LINE_MAX {
-            fmt.Println("check")
             min = self.nodes[i].childs
             max = min + int(self.nodes[i].nchilds) - 1
             if key[m] == self.nodes[min].key {
@@ -217,18 +215,17 @@ func (self *Mmtrie) Add(key []byte) int {
         if x < MMTRIE_LINE_MAX || self.nodes[x].key != key[m] {
             n = int(self.nodes[i].nchilds) + 1
             z = self.nodes[i].childs
-            pos, _ = self.pop(n)
-            fmt.Println("pos=%d", pos)
+            pos, err = self.pop(n)
+            if err != nil {
+                return -1, err
+            }
             if pos < MMTRIE_LINE_MAX || pos > self.state.current {
-                fmt.Println(0)
-                return -3
+                return -1, errors.New("trie unknow error")
             }
             if x == 0 {
-                fmt.Println(1)
                 self.nodes[pos].setKey(key[m])
                 j = pos
             } else if x == -1 {
-                fmt.Println(2)
                 self.nodes[pos].setKey(key[m])
                 k = 1
                 for k < n {
@@ -238,7 +235,6 @@ func (self *Mmtrie) Add(key []byte) int {
                 }
                 j = pos
             } else if x == 1 {
-                fmt.Println(3)
                 k = 0
                 for k < (n - 1) {
                     self.nodes[pos+k].nodeCopy(self.nodes[z])
@@ -248,7 +244,6 @@ func (self *Mmtrie) Add(key []byte) int {
                 self.nodes[pos+k].setKey(key[m])
                 j = pos + k
             } else {
-                fmt.Println(4)
                 k = 0
                 for (self.nodes[z].key) < key[m] {
                     self.nodes[pos+k].nodeCopy(self.nodes[z])
@@ -285,9 +280,5 @@ func (self *Mmtrie) Add(key []byte) int {
         ret = self.nodes[i].data
     }
 
-    return ret
-}
-
-func (m *Mmtrie) ToS() {
-    fmt.Println(len(m.nodes))
+    return ret, nil
 }

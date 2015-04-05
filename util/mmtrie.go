@@ -293,6 +293,7 @@ func (self *Mmtrie) Set(key []byte) (int, error) {
     return ret, nil
 }
 
+// if not found, return -1
 func (self *Mmtrie) Get(key []byte) (int, error) {
     ret := -1
 
@@ -309,8 +310,6 @@ func (self *Mmtrie) Get(key []byte) (int, error) {
 
     size := len(key)
 
-    // var err error
-
     if size == 1 && i >= 0 && i < self.state.total {
         return self.nodes[i].data, nil
     }
@@ -325,10 +324,8 @@ func (self *Mmtrie) Get(key []byte) (int, error) {
             } else if key[m] == self.nodes[max].key {
                 x = max
             } else if key[m] < self.nodes[min].key {
-                fmt.Println("less")
                 return ret, nil
             } else if key[m] > self.nodes[max].key {
-                fmt.Println("great")
                 return ret, nil
             } else {
                 for max > min {
@@ -345,9 +342,9 @@ func (self *Mmtrie) Get(key []byte) (int, error) {
                     } else {
                         max = z
                     }
-                    if self.nodes[x].key != key[m] {
-                        goto end
-                    }
+                }
+                if self.nodes[x].key != key[m] {
+                    return ret, nil
                 }
             }
             i = x
@@ -364,6 +361,5 @@ func (self *Mmtrie) Get(key []byte) (int, error) {
         }
         m++
     }
-end:
     return ret, nil
 }

@@ -2,6 +2,7 @@ package util
 
 import (
     "errors"
+    "fmt"
     . "github.com/yqingp/lsearch/mmap"
     "os"
     "sync"
@@ -172,7 +173,7 @@ func (self *MmtrieNode) nodeCopy(old MmtrieNode) {
     self.nchilds = old.nchilds
 }
 
-func (self *Mmtrie) Add(key []byte) (int, error) {
+func (self *Mmtrie) Set(key []byte) (int, error) {
     ret := -1
 
     if key == nil {
@@ -289,5 +290,80 @@ func (self *Mmtrie) Add(key []byte) (int, error) {
         ret = self.nodes[i].data
     }
 
+    return ret, nil
+}
+
+func (self *Mmtrie) Get(key []byte) (int, error) {
+    ret := -1
+
+    if key == nil {
+        return ret, errors.New("key is blank")
+    }
+
+    self.mutex.Lock()
+    defer self.mutex.Unlock()
+
+    i := int(key[0])
+
+    m, z, min, max, x := 1, 0, 0, 0, 0
+
+    size := len(key)
+
+    // var err error
+
+    if size == 1 && i >= 0 && i < self.state.total {
+        return self.nodes[i].data, nil
+    }
+
+    for m < size {
+        x = 0
+        if self.nodes[i].nchilds > 0 && self.nodes[i].childs >= MMTRIE_LINE_MAX {
+            min = self.nodes[i].childs
+            max = min + int(self.nodes[i].nchilds) - 1
+            if key[m] == self.nodes[min].key {
+                x = min
+            } else if key[m] == self.nodes[max].key {
+                x = max
+            } else if key[m] < self.nodes[min].key {
+                fmt.Println("less")
+                return ret, nil
+            } else if key[m] > self.nodes[max].key {
+                fmt.Println("great")
+                return ret, nil
+            } else {
+                for max > min {
+                    z = (max + min) / 2
+                    if z == min {
+                        x = z
+                        break
+                    }
+                    if self.nodes[z].key == key[m] {
+                        x = z
+                        break
+                    } else if self.nodes[z].key < key[m] {
+                        min = z
+                    } else {
+                        max = z
+                    }
+                    if self.nodes[x].key != key[m] {
+                        goto end
+                    }
+                }
+            }
+            i = x
+        }
+
+        if i >= 0 && i < self.state.total && (self.nodes[i].nchilds == 0 || (m+1 == size)) {
+            if self.nodes[i].key != key[m] {
+                goto end
+            }
+            if m+1 == size {
+                return self.nodes[i].data, nil
+            }
+            break
+        }
+        m++
+    }
+end:
     return ret, nil
 }

@@ -2,7 +2,6 @@ package util
 
 import (
     "errors"
-    "fmt"
     . "github.com/yqingp/lsearch/mmap"
     "os"
     "sync"
@@ -99,6 +98,12 @@ func (m *Mmtrie) Init() error {
         if err := f.Truncate(m.filesize); err != nil {
             return err
         }
+
+        // var i int64 = 0
+        // for ; i < m.filesize; i++ {
+        //     m.mmap[i] = 0
+        // }
+
         m.state.total = MMTRIE_BASE_NUM
         m.state.left = MMTRIE_BASE_NUM - MMTRIE_LINE_MAX
         m.state.current = MMTRIE_LINE_MAX
@@ -133,7 +138,6 @@ func (self *Mmtrie) pop(num int) (int, error) {
 
 func (self *Mmtrie) push(num int, pos int) {
     if pos >= MMTRIE_LINE_MAX && num > 0 && num <= MMTRIE_LINE_MAX && self.state != nil && self.nodes != nil {
-        fmt.Println("push11==%d", pos)
         self.nodes[pos].childs = self.state.list[num-1].head
         self.state.list[num-1].head = pos
         self.state.list[num-1].count++
@@ -156,6 +160,9 @@ func (self *Mmtrie) increment() error {
 
 func (self *MmtrieNode) setKey(k byte) {
     self.key = k
+    self.nchilds = 0
+    self.childs = 0
+    self.data = 0
 }
 
 func (self *MmtrieNode) nodeCopy(old MmtrieNode) {
@@ -177,14 +184,14 @@ func (self *Mmtrie) Add(key []byte) (int, error) {
 
     i := int(key[0])
 
-    m, n, z, j, k, min, max, pos := 1, 0, 0, 0, 0, 0, 0, 0
+    m, n, z, j, k, min, max, pos, x := 1, 0, 0, 0, 0, 0, 0, 0, 0
 
     size := len(key)
 
     var err error
 
     for m < size {
-        x := 0
+        x = 0
         if self.nodes[i].nchilds > 0 && self.nodes[i].childs >= MMTRIE_LINE_MAX {
             min = self.nodes[i].childs
             max = min + int(self.nodes[i].nchilds) - 1
@@ -215,19 +222,14 @@ func (self *Mmtrie) Add(key []byte) (int, error) {
             }
         }
         if x < MMTRIE_LINE_MAX || self.nodes[x].key != key[m] {
-            fmt.Println(i)
             n = int(self.nodes[i].nchilds) + 1
             z = self.nodes[i].childs
             pos, err = self.pop(n)
             if err != nil {
                 return -1, err
             }
-            if pos < MMTRIE_LINE_MAX {
-                fmt.Println("error_pos is %d", pos)
-                return -1, errors.New("trie unknow error less")
-            }
-            if pos > self.state.current {
-                return -1, errors.New("trie unknow error greater")
+            if pos < MMTRIE_LINE_MAX || pos > self.state.current {
+                return -1, nil
             }
             if x == 0 {
                 self.nodes[pos].setKey(key[m])

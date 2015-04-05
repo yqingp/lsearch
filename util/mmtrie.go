@@ -2,6 +2,7 @@ package util
 
 import (
     "errors"
+    "fmt"
     . "github.com/yqingp/lsearch/mmap"
     "os"
     "sync"
@@ -11,8 +12,8 @@ import (
 const (
     MMTRIE_PATH_MAX  = 256
     MMTRIE_LINE_MAX  = 256
-    MMTRIE_BASE_NUM  = 1000
-    MMTRIE_NODES_MAX = 100000
+    MMTRIE_BASE_NUM  = 100000
+    MMTRIE_NODES_MAX = 10000000
     MMTRIE_WORD_MAX  = 4096
 )
 
@@ -132,6 +133,7 @@ func (self *Mmtrie) pop(num int) (int, error) {
 
 func (self *Mmtrie) push(num int, pos int) {
     if pos >= MMTRIE_LINE_MAX && num > 0 && num <= MMTRIE_LINE_MAX && self.state != nil && self.nodes != nil {
+        fmt.Println("push11==%d", pos)
         self.nodes[pos].childs = self.state.list[num-1].head
         self.state.list[num-1].head = pos
         self.state.list[num-1].count++
@@ -213,14 +215,19 @@ func (self *Mmtrie) Add(key []byte) (int, error) {
             }
         }
         if x < MMTRIE_LINE_MAX || self.nodes[x].key != key[m] {
+            fmt.Println(i)
             n = int(self.nodes[i].nchilds) + 1
             z = self.nodes[i].childs
             pos, err = self.pop(n)
             if err != nil {
                 return -1, err
             }
-            if pos < MMTRIE_LINE_MAX || pos > self.state.current {
-                return -1, errors.New("trie unknow error")
+            if pos < MMTRIE_LINE_MAX {
+                fmt.Println("error_pos is %d", pos)
+                return -1, errors.New("trie unknow error less")
+            }
+            if pos > self.state.current {
+                return -1, errors.New("trie unknow error greater")
             }
             if x == 0 {
                 self.nodes[pos].setKey(key[m])
@@ -229,7 +236,7 @@ func (self *Mmtrie) Add(key []byte) (int, error) {
                 self.nodes[pos].setKey(key[m])
                 k = 1
                 for k < n {
-                    (&self.nodes[pos+k]).nodeCopy(self.nodes[z])
+                    self.nodes[pos+k].nodeCopy(self.nodes[z])
                     z++
                     k++
                 }

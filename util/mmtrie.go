@@ -29,13 +29,6 @@ type MmtrieList struct {
     head  int
 }
 
-type MmtrieNode struct {
-    key     uint8
-    nchilds uint8
-    data    int
-    childs  int
-}
-
 type Mmtrie struct {
     state    *MmtrieState
     nodes    []MmtrieNode
@@ -44,6 +37,7 @@ type Mmtrie struct {
     old      int64
     filesize int64
     fd       int
+    file     *os.File
     bits     int
     mutex    *sync.Mutex
     isInit   bool
@@ -51,10 +45,8 @@ type Mmtrie struct {
 }
 
 var (
-    t                 MmtrieState
-    t1                MmtrieNode
-    MmtrieNodeSizeOf  = int(unsafe.Sizeof(t1))
-    MmtrieStateSizeOf = int(unsafe.Sizeof(t))
+    MmtrieNodeSizeOf  = int(unsafe.Sizeof(MmtrieState{}))
+    MmtrieStateSizeOf = int(unsafe.Sizeof(MmtrieNode{}))
 )
 
 func NewMmtrie(filename string) (*Mmtrie, error) {
@@ -62,6 +54,16 @@ func NewMmtrie(filename string) (*Mmtrie, error) {
         return nil, errors.New("file name is blank")
     }
     return &Mmtrie{filename: filename}, nil
+}
+
+func (self *Mmtrie) Close() {
+    if self.mmap != nil {
+        self.mmap.Unmap()
+    }
+
+    if self.file != nil {
+        self.file.Close()
+    }
 }
 
 func (m *Mmtrie) Init() error {
@@ -73,7 +75,7 @@ func (m *Mmtrie) Init() error {
     if err != nil {
         return err
     }
-    defer f.Close()
+    m.file = f
     m.fd = int(f.Fd())
 
     fstat, err := os.Stat(m.filename)
@@ -152,20 +154,6 @@ func (self *Mmtrie) increment() error {
     }
 
     return nil
-}
-
-func (self *MmtrieNode) setKey(k byte) {
-    self.key = k
-    self.nchilds = 0
-    self.childs = 0
-    self.data = 0
-}
-
-func (self *MmtrieNode) nodeCopy(old MmtrieNode) {
-    self.childs = old.childs
-    self.data = old.data
-    self.key = old.key
-    self.nchilds = old.nchilds
 }
 
 func (self *Mmtrie) Set(key []byte) (int, error) {

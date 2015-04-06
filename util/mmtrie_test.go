@@ -3,10 +3,8 @@ package util
 import (
     "fmt"
     . "github.com/yqingp/lsearch/util"
-    // "os"
     "strconv"
     "testing"
-    // "unsafe"
 )
 
 func TestMmtrieSet(t *testing.T) {
@@ -15,7 +13,7 @@ func TestMmtrieSet(t *testing.T) {
     if err != nil {
         t.Error(err)
     }
-    for i := 0; i < 100; i++ {
+    for i := 1000000; i < 1000005; i++ {
         m := strconv.Itoa(i) + "哈哈" + strconv.Itoa(i+1)
         v, err := trie.Set([]byte(m))
         if err != nil {
@@ -23,6 +21,7 @@ func TestMmtrieSet(t *testing.T) {
         }
         fmt.Println(m + "===>" + strconv.Itoa(v))
     }
+    trie.Close()
 }
 
 func TestMmtrieGet(t *testing.T) {
@@ -33,4 +32,5 @@ func TestMmtrieGet(t *testing.T) {
     }
 
     fmt.Println(trie.Get([]byte("49980哈哈49981")))
+    trie.Close()
 }

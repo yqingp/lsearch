@@ -2,7 +2,6 @@ package util
 
 import (
     "errors"
-    "fmt"
     . "github.com/yqingp/lsearch/mmap"
     "os"
     "sync"
@@ -12,8 +11,8 @@ import (
 const (
     MMTRIE_PATH_MAX  = 256
     MMTRIE_LINE_MAX  = 256
-    MMTRIE_BASE_NUM  = 20000
-    MMTRIE_NODES_MAX = 10000000
+    MMTRIE_BASE_NUM  = 1000000
+    MMTRIE_NODES_MAX = 100000000
     MMTRIE_WORD_MAX  = 4096
 )
 
@@ -34,20 +33,19 @@ type Mmtrie struct {
     state    *MmtrieState
     nodes    []MmtrieNode
     mmap     Mmap
-    size     int
+    size     int64
     old      int64
     filesize int64
     fd       int
     file     *os.File
     bits     int
     mutex    *sync.Mutex
-    isInit   bool
     filename string
 }
 
 var (
-    MmtrieNodeSizeOf  = int(unsafe.Sizeof(MmtrieState{}))
-    MmtrieStateSizeOf = int(unsafe.Sizeof(MmtrieNode{}))
+    MmtrieStateSizeOf = int64(unsafe.Sizeof(MmtrieState{}))
+    MmtrieNodeSizeOf  = int64(unsafe.Sizeof(MmtrieNode{}))
 )
 
 func Open(filename string) (*Mmtrie, error) {
@@ -75,10 +73,6 @@ func (self *Mmtrie) Close() {
 }
 
 func (m *Mmtrie) init() error {
-    if m.isInit {
-        return errors.New("is inited")
-    }
-
     f, err := os.OpenFile(m.filename, os.O_CREATE|os.O_RDWR, 0644)
     if err != nil {
         return err
@@ -86,14 +80,16 @@ func (m *Mmtrie) init() error {
     m.file = f
     m.fd = int(f.Fd())
 
-    fstat, err := os.Stat(m.filename)
+    fstat, err := f.Stat()
     if err != nil {
         return err
     }
 
+    m.filesize = fstat.Size()
+
     if m.mmap == nil {
         m.size = MmtrieStateSizeOf + MMTRIE_NODES_MAX*MmtrieNodeSizeOf
-        mp, err := MmapFile(m.fd, m.size)
+        mp, err := MmapFile(m.fd, int(m.size))
         if err != nil {
             return err
         }
@@ -104,10 +100,9 @@ func (m *Mmtrie) init() error {
         m.nodes = pointer
     }
 
-    if fstat.Size() == 0 {
-        m.filesize = int64(MmtrieStateSizeOf) + MMTRIE_BASE_NUM*int64(MmtrieNodeSizeOf)
-        fmt.Println(m.filesize)
-        if err := f.Truncate(m.filesize); err != nil {
+    if m.filesize == 0 {
+        m.filesize = MmtrieStateSizeOf + MMTRIE_BASE_NUM*MmtrieNodeSizeOf
+        if err := m.file.Truncate(m.filesize); err != nil {
             return err
         }
 
@@ -117,52 +112,6 @@ func (m *Mmtrie) init() error {
     }
 
     m.mutex = &sync.Mutex{}
-    return nil
-}
-
-func (self *Mmtrie) pop(num int) (int, error) {
-    pos := -1
-
-    if num > 0 && num <= MMTRIE_LINE_MAX && self.state != nil && self.nodes != nil {
-        if self.state.list[num-1].count > 0 {
-            pos = self.state.list[num-1].head
-            self.state.list[num-1].head = self.nodes[pos].childs
-            self.state.list[num-1].count--
-        } else {
-            if self.state.left < num {
-                if err := self.increment(); err != nil {
-                    return pos, err
-                }
-            }
-            pos = self.state.current
-            self.state.current += num
-            self.state.left -= num
-        }
-    }
-
-    return pos, nil
-}
-
-func (self *Mmtrie) push(num int, pos int) {
-    if pos >= MMTRIE_LINE_MAX && num > 0 && num <= MMTRIE_LINE_MAX && self.state != nil && self.nodes != nil {
-        self.nodes[pos].childs = self.state.list[num-1].head
-        self.state.list[num-1].head = pos
-        self.state.list[num-1].count++
-    }
-}
-
-func (self *Mmtrie) increment() error {
-    if self.filesize < int64(self.size) {
-        fmt.Println("increment", self.filesize)
-        self.old = self.filesize
-        self.filesize += int64(MMTRIE_BASE_NUM * MmtrieNodeSizeOf)
-        if err := os.Truncate(self.filename, self.filesize); err != nil {
-            return err
-        }
-        self.state.total += MMTRIE_BASE_NUM
-        self.state.left += MMTRIE_BASE_NUM
-    }
-
     return nil
 }
 
@@ -430,4 +379,50 @@ func (self *Mmtrie) Del(key []byte) (int, error) {
         m++
     }
     return ret, nil
+}
+
+func (self *Mmtrie) pop(num int) (int, error) {
+    pos := -1
+
+    if num > 0 && num <= MMTRIE_LINE_MAX && self.state != nil && self.nodes != nil {
+        if self.state.list[num-1].count > 0 {
+            pos = self.state.list[num-1].head
+            self.state.list[num-1].head = self.nodes[pos].childs
+            self.state.list[num-1].count--
+        } else {
+            if self.state.left < num {
+                if err := self.increment(); err != nil {
+                    return pos, err
+                }
+            }
+            pos = self.state.current
+            self.state.current += num
+            self.state.left -= num
+        }
+    }
+
+    return pos, nil
+}
+
+func (self *Mmtrie) push(num int, pos int) {
+    if pos >= MMTRIE_LINE_MAX && num > 0 && num <= MMTRIE_LINE_MAX {
+        self.nodes[pos].childs = self.state.list[num-1].head
+        self.state.list[num-1].head = pos
+        self.state.list[num-1].count++
+    }
+}
+
+func (self *Mmtrie) increment() error {
+
+    if self.filesize < int64(self.size) {
+        self.old = self.filesize
+        self.filesize += int64(MMTRIE_BASE_NUM) * int64(MmtrieNodeSizeOf)
+        if err := self.file.Truncate(self.filesize); err != nil {
+            return err
+        }
+        self.state.total += MMTRIE_BASE_NUM
+        self.state.left += MMTRIE_BASE_NUM
+    }
+
+    return nil
 }

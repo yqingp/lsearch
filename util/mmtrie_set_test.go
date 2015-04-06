@@ -1,7 +1,7 @@
 package util
 
 import (
-    "fmt"
+    // "fmt"
     . "github.com/yqingp/lsearch/util"
     "strconv"
     "testing"
@@ -9,16 +9,20 @@ import (
 
 func TestMmtrieSet(t *testing.T) {
     trie, err := Open("a.txt")
+    // t.Log(trie)
     if err != nil {
         t.Error(err)
     }
-    for i := 1; i < 100000; i++ {
+
+    for i := 1; i < 1000000; i++ {
         m := strconv.Itoa(i) + "哈哈" + strconv.Itoa(i+1)
-        v, err := trie.Set([]byte(m))
+        // fmt.Println(m)
+        _, err := trie.Set([]byte(m))
         if err != nil {
             t.Fatal(err)
         }
-        fmt.Println(m + "===>" + strconv.Itoa(v))
+        // fmt.Println(m + "===>" + strconv.Itoa(v))
     }
+
     trie.Close()
 }

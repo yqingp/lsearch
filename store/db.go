@@ -8,6 +8,7 @@ import (
     "os"
     "path/filepath"
     "sync"
+    "unsafe"
 )
 
 const (
@@ -47,9 +48,10 @@ type DbIO struct {
     old   int64
     end   int64
     size  int64
+    file  *os.File
 }
 
-type DbFreeBlock struct {
+type DbFreeBlockQueue struct {
     index   int
     blockId int
     count   int
@@ -95,7 +97,12 @@ type Db struct {
     kmap           *util.Mmtrie
     loggerFile     *os.File
     logger         *log.Logger
+    isMmap         bool
 }
+
+var (
+    SizeOfDbState = int64(unsafe.Sizeof(DbState{}))
+)
 
 func NewDb(basedir string, isMmap bool) (*Db, error) {
     if basedir == "" {
@@ -109,6 +116,7 @@ func NewDb(basedir string, isMmap bool) (*Db, error) {
     db.blockMutex = &sync.Mutex{}
     db.mutex = &sync.Mutex{}
     db.basedir = basedir
+    db.isMmap = isMmap
 
     if err := db.initKmap(); err != nil {
         return nil, err
@@ -143,6 +151,86 @@ func (self *Db) initLogger() error {
         return err
     }
 
-    self.logger = log.New(f, "LSearch:DB:", log.Lshortfile|log.Ldate|log.Ltime)
+    self.logger = log.New(f, "[LSearch][DB]:", log.Lshortfile|log.Ldate|log.Ltime)
     return nil
+}
+
+func (self *Db) initState() {
+    stateFileName := filepath.Join(self.basedir, "db.state")
+
+    f, err := os.OpenFile(stateFileName, os.O_CREATE|os.O_RDWR, 0664)
+    if err != nil {
+        self.logger.Fatal("create stateFile error")
+        os.Exit(-1)
+    }
+    self.stateIO.fd = int(f.Fd())
+    self.stateIO.file = f
+
+    fstat, err := os.Stat(stateFileName)
+    if err != nil {
+        self.logger.Fatal("fstat stateFile error")
+        os.Exit(-1)
+    }
+
+    self.stateIO.end = fstat.Size()
+    if fstat.Size() == 0 {
+        self.stateIO.end, self.stateIO.size = SizeOfDbState, SizeOfDbState
+    }
+
+    if err := os.Truncate(stateFileName, self.stateIO.size); err != nil {
+        self.logger.Fatal("truncate state file error")
+        os.Exit(-1)
+    }
+
+    var errNo error
+    if self.stateIO.mmap, errNo = mmap.MmapFile(self.stateIO.fd, int(self.stateIO.end)); errNo != nil {
+        self.logger.Fatal("mmap state file error")
+        os.Exit(-1)
+    }
+
+    self.state = (*DbState)(unsafe.Pointer(&self.stateIO.mmap[0]))
+    self.state.mode = 0
+    if self.isMmap {
+        self.state.mode = 1
+    }
+}
+
+func (self *Db) initFreeBlockQueue() {
+    freeBlockQueueFileName := filepath.Join(self.basedir, "db.freeq")
+
+    f, err := os.OpenFile(freeBlockQueueFileName, os.O_CREATE|os.O_RDWR, 0664)
+    if err != nil {
+        self.logger.Fatal("create free block q error")
+        os.Exit(-1)
+    }
+    self.stateIO.fd = int(f.Fd())
+    self.stateIO.file = f
+
+    fstat, err := os.Stat(stateFileName)
+    if err != nil {
+        self.logger.Fatal("fstat stateFile error")
+        os.Exit(-1)
+    }
+
+    self.stateIO.end = fstat.Size()
+    if fstat.Size() == 0 {
+        self.stateIO.end, self.stateIO.size = SizeOfDbState, SizeOfDbState
+    }
+
+    if err := os.Truncate(stateFileName, self.stateIO.size); err != nil {
+        self.logger.Fatal("truncate state file error")
+        os.Exit(-1)
+    }
+
+    var errNo error
+    if self.stateIO.mmap, errNo = mmap.MmapFile(self.stateIO.fd, int(self.stateIO.end)); errNo != nil {
+        self.logger.Fatal("mmap state file error")
+        os.Exit(-1)
+    }
+
+    self.state = (*DbState)(unsafe.Pointer(&self.stateIO.mmap[0]))
+    self.state.mode = 0
+    if self.isMmap {
+        self.state.mode = 1
+    }
 }

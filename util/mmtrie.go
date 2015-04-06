@@ -2,7 +2,6 @@ package util
 
 import (
     "errors"
-    "fmt"
     . "github.com/yqingp/lsearch/mmap"
     "os"
     "sync"
@@ -74,6 +73,7 @@ func (m *Mmtrie) Init() error {
     if err != nil {
         return err
     }
+    defer f.Close()
     m.fd = int(f.Fd())
 
     fstat, err := os.Stat(m.filename)
@@ -99,11 +99,6 @@ func (m *Mmtrie) Init() error {
         if err := f.Truncate(m.filesize); err != nil {
             return err
         }
-
-        // var i int64 = 0
-        // for ; i < m.filesize; i++ {
-        //     m.mmap[i] = 0
-        // }
 
         m.state.total = MMTRIE_BASE_NUM
         m.state.left = MMTRIE_BASE_NUM - MMTRIE_LINE_MAX
@@ -352,7 +347,7 @@ func (self *Mmtrie) Get(key []byte) (int, error) {
 
         if i >= 0 && i < self.state.total && (self.nodes[i].nchilds == 0 || (m+1 == size)) {
             if self.nodes[i].key != key[m] {
-                goto end
+                return ret, nil
             }
             if m+1 == size {
                 return self.nodes[i].data, nil

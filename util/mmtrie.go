@@ -346,3 +346,78 @@ func (self *Mmtrie) Get(key []byte) (int, error) {
     }
     return ret, nil
 }
+
+//if not found return -1 ,  else return val and  remove it
+func (self *Mmtrie) Del(key []byte) (int, error) {
+    ret := -1
+
+    if key == nil {
+        return ret, errors.New("key is blank")
+    }
+
+    self.mutex.Lock()
+    defer self.mutex.Unlock()
+
+    i := int(key[0])
+
+    m, z, min, max, x := 1, 0, 0, 0, 0
+
+    size := len(key)
+
+    if size == 1 && i >= 0 && i < self.state.total && self.nodes[i].data != 0 {
+        ret = self.nodes[i].data
+        self.nodes[i].data = 0
+        return ret, nil
+    }
+
+    for m < size {
+        x = 0
+        if self.nodes[i].nchilds > 0 && self.nodes[i].childs >= MMTRIE_LINE_MAX {
+            min = self.nodes[i].childs
+            max = min + int(self.nodes[i].nchilds) - 1
+            if key[m] == self.nodes[min].key {
+                x = min
+            } else if key[m] == self.nodes[max].key {
+                x = max
+            } else if key[m] < self.nodes[min].key {
+                return ret, nil
+            } else if key[m] > self.nodes[max].key {
+                return ret, nil
+            } else {
+                for max > min {
+                    z = (max + min) / 2
+                    if z == min {
+                        x = z
+                        break
+                    }
+                    if self.nodes[z].key == key[m] {
+                        x = z
+                        break
+                    } else if self.nodes[z].key < key[m] {
+                        min = z
+                    } else {
+                        max = z
+                    }
+                }
+                if self.nodes[x].key != key[m] {
+                    return ret, nil
+                }
+            }
+            i = x
+        }
+
+        if i >= 0 && i < self.state.total && (self.nodes[i].nchilds == 0 || (m+1 == size)) {
+            if self.nodes[i].key != key[m] {
+                return ret, nil
+            }
+            if m+1 == size {
+                ret = self.nodes[i].data
+                self.nodes[i].data = 0
+                return ret, nil
+            }
+            break
+        }
+        m++
+    }
+    return ret, nil
+}

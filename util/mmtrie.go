@@ -276,9 +276,9 @@ func (self *Mmtrie) Set(key []byte) (int, error) {
     return ret, nil
 }
 
-// if not found, return -1
+// if not found, return 0
 func (self *Mmtrie) Get(key []byte) (int, error) {
-    ret := -1
+    ret := 0
 
     if key == nil {
         return ret, errors.New("key is blank")
@@ -347,9 +347,9 @@ func (self *Mmtrie) Get(key []byte) (int, error) {
     return ret, nil
 }
 
-//if not found return -1 ,  else return val and  remove it
+//if not found return 0 ,  else return val and  remove it
 func (self *Mmtrie) Del(key []byte) (int, error) {
-    ret := -1
+    ret := 0
 
     if key == nil {
         return ret, errors.New("key is blank")

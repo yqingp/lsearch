@@ -3,7 +3,6 @@ package util
 import (
     "fmt"
     . "github.com/yqingp/lsearch/util"
-    "strconv"
     "testing"
 )
 

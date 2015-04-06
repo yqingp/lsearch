@@ -2,6 +2,7 @@ package util
 
 import (
     "errors"
+    "fmt"
     . "github.com/yqingp/lsearch/mmap"
     "os"
     "sync"
@@ -11,7 +12,7 @@ import (
 const (
     MMTRIE_PATH_MAX  = 256
     MMTRIE_LINE_MAX  = 256
-    MMTRIE_BASE_NUM  = 100000
+    MMTRIE_BASE_NUM  = 20000
     MMTRIE_NODES_MAX = 10000000
     MMTRIE_WORD_MAX  = 4096
 )
@@ -49,11 +50,18 @@ var (
     MmtrieStateSizeOf = int(unsafe.Sizeof(MmtrieNode{}))
 )
 
-func NewMmtrie(filename string) (*Mmtrie, error) {
+func Open(filename string) (*Mmtrie, error) {
     if filename == "" {
         return nil, errors.New("file name is blank")
     }
-    return &Mmtrie{filename: filename}, nil
+
+    m := &Mmtrie{filename: filename}
+
+    if err := m.init(); err != nil {
+        return nil, err
+    }
+
+    return m, nil
 }
 
 func (self *Mmtrie) Close() {
@@ -66,7 +74,7 @@ func (self *Mmtrie) Close() {
     }
 }
 
-func (m *Mmtrie) Init() error {
+func (m *Mmtrie) init() error {
     if m.isInit {
         return errors.New("is inited")
     }
@@ -98,6 +106,7 @@ func (m *Mmtrie) Init() error {
 
     if fstat.Size() == 0 {
         m.filesize = int64(MmtrieStateSizeOf) + MMTRIE_BASE_NUM*int64(MmtrieNodeSizeOf)
+        fmt.Println(m.filesize)
         if err := f.Truncate(m.filesize); err != nil {
             return err
         }
@@ -144,6 +153,7 @@ func (self *Mmtrie) push(num int, pos int) {
 
 func (self *Mmtrie) increment() error {
     if self.filesize < int64(self.size) {
+        fmt.Println("increment", self.filesize)
         self.old = self.filesize
         self.filesize += int64(MMTRIE_BASE_NUM * MmtrieNodeSizeOf)
         if err := os.Truncate(self.filename, self.filesize); err != nil {

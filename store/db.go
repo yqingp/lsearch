@@ -94,33 +94,55 @@ type Db struct {
     basedir        string
     kmap           *util.Mmtrie
     loggerFile     *os.File
+    logger         *log.Logger
 }
 
 func NewDb(basedir string, isMmap bool) (*Db, error) {
     if basedir == "" {
         return nil, errors.New("basedir is blank")
     }
+
     db := &Db{}
+
     db.freeBlockMutex = &sync.Mutex{}
     db.indexMutex = &sync.Mutex{}
     db.blockMutex = &sync.Mutex{}
     db.mutex = &sync.Mutex{}
-
     db.basedir = basedir
 
-    kmapfileName := filepath.Join(basedir, "db.kmap")
-    db.kmap, _ = util.NewMmtrie(kmapfileName)
-    db.kmap.Init()
+    if err := db.initKmap(); err != nil {
+        return nil, err
+    }
 
-    loggerFileName := filepath.Join(basedir, "db.log")
+    if err := db.initLogger(); err != nil {
+        return nil, err
+    }
+
+    return db, nil
+}
+
+func (self *Db) initKmap() error {
+    var err error
+    kmapfileName := filepath.Join(self.basedir, "db.kmap")
+    if self.kmap, err = util.NewMmtrie(kmapfileName); err != nil {
+        return err
+    }
+    if err = self.kmap.Init(); err != nil {
+        return err
+    }
+
+    return nil
+}
+
+func (self *Db) initLogger() error {
+    loggerFileName := filepath.Join(self.basedir, "db.log")
 
     f, err := os.OpenFile(loggerFileName, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0755)
 
     if err != nil {
-        return nil, err
+        return err
     }
 
-    log.SetOutput(f)
-
-    return db, nil
+    self.logger = log.New(f, "LSearch:DB:", log.Lshortfile|log.Ldate|log.Ltime)
+    return nil
 }

@@ -99,6 +99,7 @@ type Db struct {
     loggerFile       *os.File
     logger           *log.Logger
     isMmap           bool
+    mutexs           [DB_MUTEX_MAX]*sync.Mutex
 }
 
 var (
@@ -265,5 +266,54 @@ func (self *Db) initDbs() {
         if err := os.MkdirAll(currentDbPath, 0755); err != nil {
             self.logger.Fatal("init dbs: mkdir error; check perm")
         }
+
+        currentDbFileName := filepath.Join(currentDbPath, strconv.Itoa(i)+".db")
+        self.dbsIO[i].mutex = &sync.Mutex{}
+        file, err := os.OpenFile(currentDbFileName, os.O_CREATE|os.O_RDWR, 0644)
+        if err != nil {
+            self.logger.Fatal("init dbs:open db file error")
+        }
+
+        fstat, err := file.Stat()
+        if err != nil {
+            self.logger.Fatal("init dbs: db file stat error")
+        }
+
+        self.dbsIO[i].file = file
+        self.stateIO.fd = int(file.Fd())
+
+        if fstat.Size() == 0 {
+            self.dbsIO[i].size = DB_MFILE_MAX
+
+            if err := file.Truncate(self.dbsIO[i].size); err != nil {
+                self.logger.Fatal("init dbs: truncate error")
+            }
+        } else {
+            self.dbsIO[i].size = fstat.Size()
+        }
+
+        if self.isMmap {
+            self.checkDbIOMmap(i)
+        }
     }
+
+    for i := 0; i < DB_MUTEX_MAX; i++ {
+        self.mutexs[i] = &sync.Mutex{}
+    }
+}
+
+func (self *Db) checkDbIOMmap(i int) {
+    dbsio := self.dbsIO[i]
+
+    if dbsio.fd < 1 || dbsio.file == nil {
+        return
+    }
+    if dbsio.mmap == nil {
+        m, err := mmap.MmapFile(dbsio.fd, int(dbsio.size))
+        if err != nil {
+            self.logger.Fatal("init dbs mmap error")
+        }
+        dbsio.mmap = m
+    }
+
 }

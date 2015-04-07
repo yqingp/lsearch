@@ -1,0 +1,78 @@
+package store
+
+import (
+    "github.com/yqingp/lsearch/mmap"
+    "os"
+    "path/filepath"
+    "strconv"
+    "sync"
+)
+
+type DbIO struct {
+    fd    int
+    bits  int
+    mmap  mmap.Mmap
+    mutex *sync.Mutex
+    old   int64
+    end   int64
+    size  int64
+    file  *os.File
+}
+
+func (self *Db) checkDbIOMmap(i int) {
+    dbsio := self.dbsIO[i]
+
+    if dbsio.fd < 1 || dbsio.file == nil {
+        return
+    }
+    if dbsio.mmap == nil {
+        m, err := mmap.MmapFile(dbsio.fd, int(dbsio.size))
+        if err != nil {
+            self.logger.Fatal("init dbs mmap error")
+        }
+        dbsio.mmap = m
+    }
+
+}
+
+func (self *Db) initDbsIO() {
+    for i := 0; i < self.state.lastId; i++ {
+        currentDbPath := filepath.Join(self.basedir, "base", strconv.Itoa(i/DB_DIR_FILES))
+        if err := os.MkdirAll(currentDbPath, 0755); err != nil {
+            self.logger.Fatal("init dbs: mkdir error; check perm")
+        }
+
+        currentDbFileName := filepath.Join(currentDbPath, strconv.Itoa(i)+".db")
+        self.dbsIO[i].mutex = &sync.Mutex{}
+        file, err := os.OpenFile(currentDbFileName, os.O_CREATE|os.O_RDWR, 0644)
+        if err != nil {
+            self.logger.Fatal("init dbs:open db file error")
+        }
+
+        fstat, err := file.Stat()
+        if err != nil {
+            self.logger.Fatal("init dbs: db file stat error")
+        }
+
+        self.dbsIO[i].file = file
+        self.dbsIO[i].fd = int(file.Fd())
+
+        if fstat.Size() == 0 {
+            self.dbsIO[i].size = DB_MFILE_MAX
+
+            if err := file.Truncate(self.dbsIO[i].size); err != nil {
+                self.logger.Fatal("init dbs: truncate error")
+            }
+        } else {
+            self.dbsIO[i].size = fstat.Size()
+        }
+
+        if self.isMmap {
+            self.checkDbIOMmap(i)
+        }
+    }
+
+    for i := 0; i < DB_MUTEX_MAX; i++ {
+        self.mutexs[i] = &sync.Mutex{}
+    }
+}

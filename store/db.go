@@ -2,12 +2,9 @@ package store
 
 import (
     "errors"
-    "github.com/yqingp/lsearch/mmap"
     "github.com/yqingp/lsearch/util"
     "log"
     "os"
-    // "path/filepath"
-    // "strconv"
     "sync"
     "unsafe"
 )
@@ -32,52 +29,6 @@ const (
     DB_BLOCK_INCRE_LEN    = 0x0
     DB_BLOCK_INCRE_DOUBLE = 0x1
 )
-
-type DbIndex struct {
-    blockSize int
-    blockId   int
-    ndata     int
-    index     int
-    modTime   int
-}
-
-type DbIO struct {
-    fd    int
-    bits  int
-    mmap  mmap.Mmap
-    mutex *sync.Mutex
-    old   int64
-    end   int64
-    size  int64
-    file  *os.File
-}
-
-type DbFreeBlockQueue struct {
-    index   int
-    blockId int
-    count   int
-}
-
-type DbBlockMap struct {
-    blockSize int
-    blocksMax int
-}
-
-type DbBlock struct {
-    mblocks  [DB_MBLOCKS_MAX]string
-    nmblocks int
-    total    int
-}
-
-type DbState struct {
-    status         int
-    mode           int
-    lastId         int
-    lastOff        int
-    dbIdMax        int
-    dataLenMax     int
-    blockIncreMode int
-}
 
 type Db struct {
     status           int

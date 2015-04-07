@@ -76,3 +76,18 @@ func (self *Db) initDbsIO() {
         self.mutexs[i] = &sync.Mutex{}
     }
 }
+
+func (db *Db) checkIndexIOWithId(id int) {
+    if id > db.state.dbIdMax {
+        db.state.dbIdMax = id
+    }
+
+    if id < DB_DBX_MAX && int64(id)*SizeofDbIndex >= db.indexIO.end {
+        db.indexIO.old = db.indexIO.end
+        db.indexIO.end = int64(id)/int64(DB_DBX_BASE) + 1
+        db.indexIO.end += SizeofDbIndex * int64(DB_DBX_BASE)
+        if err := db.indexIO.file.Truncate(db.indexIO.end); err != nil {
+            db.logger.Fatal("db index file truncate error; exit")
+        }
+    }
+}

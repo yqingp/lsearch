@@ -9,27 +9,6 @@ import (
     "unsafe"
 )
 
-const (
-    DB_LNK_MAX            = 2097152
-    DB_LNK_INCREMENT      = 65536
-    DB_DBX_MAX            = 2000000000
-    DB_DBX_BASE           = 1000000
-    DB_BASE_SIZE          = 64
-    DB_PATH_MAX           = 1024
-    DB_DIR_FILES          = 64
-    DB_BUF_SIZE           = 4096
-    DB_XBLOCKS_MAX        = 14
-    DB_MBLOCKS_MAX        = 1024
-    DB_MBLOCK_BASE        = 4096
-    DB_MBLOCK_MAX         = 33554432
-    DB_MUTEX_MAX          = 65536
-    DB_USE_MMAP           = 0x01
-    DB_MFILE_SIZE         = 268435456
-    DB_MFILE_MAX          = 8129
-    DB_BLOCK_INCRE_LEN    = 0x0
-    DB_BLOCK_INCRE_DOUBLE = 0x1
-)
-
 type Db struct {
     status           int
     blockMax         int
@@ -52,12 +31,6 @@ type Db struct {
     isMmap           bool
     mutexs           [DB_MUTEX_MAX]*sync.Mutex
 }
-
-var (
-    SizeOfDbState          = int64(unsafe.Sizeof(DbState{}))
-    SizeOfDbFreeBlockQueue = int64(unsafe.Sizeof(DbFreeBlockQueue{}))
-    SizeofDbIndex          = int64(unsafe.Sizeof(DbIndex{}))
-)
 
 func Open(basedir string, isMmap bool) (*Db, error) {
     if basedir == "" {
@@ -86,7 +59,7 @@ func Open(basedir string, isMmap bool) (*Db, error) {
 
 // if id is < 1  generate auto increment id
 func (self *Db) Set(id int, key []byte, value []byte) (int, error) {
-    if key == nil || value == nil {
+    if key == nil || value == nil || len(value) == 0 {
         return -1, errors.New("key or value is blank")
     }
 
@@ -104,8 +77,41 @@ func (self *Db) Set(id int, key []byte, value []byte) (int, error) {
     return id, nil
 }
 
-func (self *Db) set(id int, value []byte) {
+func (self *Db) set(id int, value []byte) int {
 
+    ret := -1
+    var dbIndexes []DbIndex = (*[DB_DBX_MAX]DbIndex)(unsafe.Pointer(&self.indexIO.mmap[0]))[:DB_DBX_MAX]
+    if self.status != 0 || dbIndexes == nil {
+        return ret
+    }
+
+    valueLen := len(value)
+
+    self.indexMutex.Lock()
+    self.checkIndexIOWithId(id)
+    self.indexMutex.Unlock()
+
+    self.lockId(id)
+    freeQueue, oldFreeQueue := DbFreeBlockQueue{}, DbFreeBlockQueue{}
+    if dbIndexes[id].blockSize < valueLen {
+        if dbIndexes[id].blockSize > 0 {
+            oldFreeQueue.index = dbIndexes[id].index
+            oldFreeQueue.blockId = dbIndexes[id].blockId
+            oldFreeQueue.count = blocksCount(dbIndexes[id].blockSize)
+        }
+    }
+
+    self.unlockId(id)
+
+    return ret
+}
+
+func (self *Db) lockId(id int) {
+    self.mutexs[id%DB_MUTEX_MAX].Lock()
+}
+
+func (self *Db) unlockId(id int) {
+    self.mutexs[id%DB_MUTEX_MAX].Unlock()
 }
 
 func (self *Db) Get() {

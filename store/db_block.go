@@ -54,3 +54,12 @@ func (self *Db) initFreeBlockQueue() {
         self.logger.Fatal("mmap stat free block queue file error")
     }
 }
+
+func blocksCount(int blen) int {
+    ret := blen / DB_BASE_SIZE
+    if blen%DB_BASE_SIZE > 0 {
+        ret += 1
+    }
+
+    return ret
+}

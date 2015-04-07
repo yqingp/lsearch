@@ -4,6 +4,7 @@ import (
     "github.com/yqingp/lsearch/mmap"
     "os"
     "path/filepath"
+    "unsafe"
 )
 
 type DbIndex struct {
@@ -37,6 +38,8 @@ func (self *Db) initIndex() {
     if self.indexIO.mmap, errNo = mmap.MmapFile(self.indexIO.fd, int(self.indexIO.size)); errNo != nil {
         self.logger.Fatal("mmap stat free block queue file error")
     }
+
+    self.indexes = (*[DB_DBX_MAX]DbIndex)(unsafe.Pointer(&self.indexIO.mmap[0]))[:DB_DBX_MAX]
 
     if fstat.Size() == 0 {
         self.indexIO.end = DB_DBX_BASE * SizeofDbIndex

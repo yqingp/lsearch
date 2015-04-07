@@ -6,7 +6,6 @@ import (
     "log"
     "os"
     "sync"
-    "unsafe"
 )
 
 type Db struct {
@@ -21,7 +20,9 @@ type Db struct {
     state            *DbState
     stateIO          DbIO
     freeBlockQueueIO DbIO
+    freeBlockQueues  []DbFreeBlockQueue
     indexIO          DbIO
+    indexes          []DbIndex
     dbsIO            [DB_MFILE_MAX]DbIO
     blocks           [DB_XBLOCKS_MAX]DbBlock
     basedir          string
@@ -80,12 +81,14 @@ func (self *Db) Set(id int, key []byte, value []byte) (int, error) {
 func (self *Db) set(id int, value []byte) int {
 
     ret := -1
-    var dbIndexes []DbIndex = (*[DB_DBX_MAX]DbIndex)(unsafe.Pointer(&self.indexIO.mmap[0]))[:DB_DBX_MAX]
+    dbIndexes := self.indexes
     if self.status != 0 || dbIndexes == nil {
         return ret
     }
 
     valueLen := len(value)
+
+    blocksCountNum := 0
 
     self.indexMutex.Lock()
     self.checkIndexIOWithId(id)
@@ -98,7 +101,12 @@ func (self *Db) set(id int, value []byte) int {
             oldFreeQueue.index = dbIndexes[id].index
             oldFreeQueue.blockId = dbIndexes[id].blockId
             oldFreeQueue.count = blocksCount(dbIndexes[id].blockSize)
+            dbIndexes[id].blockSize = 0
+            dbIndexes[id].blockId = 0
+            dbIndexes[id].ndata = 0
         }
+
+        blocksCountNum = blocksCount(valueLen)
     }
 
     self.unlockId(id)

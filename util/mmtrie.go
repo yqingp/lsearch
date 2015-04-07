@@ -381,6 +381,7 @@ func (self *Mmtrie) Del(key []byte) (int, error) {
     return ret, nil
 }
 
+//pop one node
 func (self *Mmtrie) pop(num int) (int, error) {
     pos := -1
 
@@ -404,6 +405,7 @@ func (self *Mmtrie) pop(num int) (int, error) {
     return pos, nil
 }
 
+//push one node to free list
 func (self *Mmtrie) push(num int, pos int) {
     if pos >= MMTRIE_LINE_MAX && num > 0 && num <= MMTRIE_LINE_MAX {
         self.nodes[pos].childs = self.state.list[num-1].head
@@ -412,6 +414,7 @@ func (self *Mmtrie) push(num int, pos int) {
     }
 }
 
+// check file need truncate
 func (self *Mmtrie) increment() error {
 
     if self.filesize < int64(self.size) {

@@ -7,6 +7,7 @@ import (
     "log"
     "os"
     "path/filepath"
+    "strconv"
     "sync"
     "unsafe"
 )
@@ -160,7 +161,6 @@ func (self *Db) initState() {
     f, err := os.OpenFile(stateFileName, os.O_CREATE|os.O_RDWR, 0664)
     if err != nil {
         self.logger.Fatal("create stateFile error")
-        os.Exit(-1)
     }
     self.stateIO.fd = int(f.Fd())
     self.stateIO.file = f
@@ -168,7 +168,6 @@ func (self *Db) initState() {
     fstat, err := os.Stat(stateFileName)
     if err != nil {
         self.logger.Fatal("fstat stateFile error")
-        os.Exit(-1)
     }
 
     self.stateIO.end = fstat.Size()
@@ -178,14 +177,12 @@ func (self *Db) initState() {
 
         if err := os.Truncate(stateFileName, self.stateIO.end); err != nil {
             self.logger.Fatal("truncate state file error")
-            os.Exit(-1)
         }
     }
 
     var errNo error
     if self.stateIO.mmap, errNo = mmap.MmapFile(self.stateIO.fd, int(self.stateIO.end)); errNo != nil {
         self.logger.Fatal("mmap state file error")
-        os.Exit(-1)
     }
 
     self.state = (*DbState)(unsafe.Pointer(&self.stateIO.mmap[0]))
@@ -209,7 +206,6 @@ func (self *Db) initFreeBlockQueue() {
     fstat, err := os.Stat(freeBlockQueueFileName)
     if err != nil {
         self.logger.Fatal("stat free block queue error")
-        os.Exit(-1)
     }
 
     self.freeBlockQueueIO.end = fstat.Size()
@@ -219,14 +215,12 @@ func (self *Db) initFreeBlockQueue() {
 
         if err := os.Truncate(freeBlockQueueFileName, self.freeBlockQueueIO.size); err != nil {
             self.logger.Fatal("truncate stat free block queue file error")
-            os.Exit(-1)
         }
     }
 
     var errNo error
     if self.freeBlockQueueIO.mmap, errNo = mmap.MmapFile(self.freeBlockQueueIO.fd, int(self.freeBlockQueueIO.end)); errNo != nil {
         self.logger.Fatal("mmap stat free block queue file error")
-        os.Exit(-1)
     }
 }
 
@@ -236,7 +230,6 @@ func (self *Db) initIndex() {
     f, err := os.OpenFile(indexFileName, os.O_CREATE|os.O_RDWR, 0664)
     if err != nil {
         self.logger.Fatal("create free block queue error")
-        os.Exit(-1)
     }
     self.indexIO.fd = int(f.Fd())
     self.indexIO.file = f
@@ -244,7 +237,6 @@ func (self *Db) initIndex() {
     fstat, err := os.Stat(indexFileName)
     if err != nil {
         self.logger.Fatal("stat free block queue error")
-        os.Exit(-1)
     }
 
     self.indexIO.end = fstat.Size()
@@ -254,7 +246,6 @@ func (self *Db) initIndex() {
 
     if self.indexIO.mmap, errNo = mmap.MmapFile(self.indexIO.fd, int(self.indexIO.size)); errNo != nil {
         self.logger.Fatal("mmap stat free block queue file error")
-        os.Exit(-1)
     }
 
     if fstat.Size() == 0 {
@@ -262,9 +253,17 @@ func (self *Db) initIndex() {
 
         if err := os.Truncate(indexFileName, self.indexIO.end); err != nil {
             self.logger.Fatal("truncate stat free block queue file error")
-            os.Exit(-1)
         }
     }
 
     self.indexIO.old = self.indexIO.end
+}
+
+func (self *Db) initDbs() {
+    for i := 0; i < self.state.lastId; i++ {
+        currentDbPath := filepath.Join(self.basedir, "base", strconv.Itoa(i/DB_DIR_FILES))
+        if err := os.MkdirAll(currentDbPath, 0755); err != nil {
+            self.logger.Fatal("init dbs: mkdir error; check perm")
+        }
+    }
 }

@@ -25,7 +25,7 @@ const (
     DB_BLOCK_INCRE_DOUBLE = 0x1
 )
 
-var (
+const (
     SizeOfDbState          = int64(unsafe.Sizeof(DbState{}))
     SizeOfDbFreeBlockQueue = int64(unsafe.Sizeof(DbFreeBlockQueue{}))
     SizeofDbIndex          = int64(unsafe.Sizeof(DbIndex{}))

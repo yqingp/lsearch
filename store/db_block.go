@@ -1,10 +1,11 @@
 package store
 
 import (
+    "bytes"
+    "encoding/gob"
     "github.com/yqingp/lsearch/mmap"
     "os"
     "path/filepath"
-    "syscall"
     "unsafe"
 )
 
@@ -80,7 +81,15 @@ func (self *DbFreeBlockQueue) pop(db *Db, bcount int) (ret int) {
     links := db.freeBlockQueues
     var plink *DbFreeBlockQueue
     _ = plink
-    x, index := bcount, 0
+
+    var link DbFreeBlockQueue
+
+    var buf []byte
+    var buf1 bytes.Buffer
+    x, index, left, db_id, block_id, block_size := bcount, 0, 0, -1, -1, 0
+    _ = db_id
+    _ = block_id
+    _ = block_size
     if links != nil {
         index = links[x].index
     }
@@ -95,18 +104,36 @@ func (self *DbFreeBlockQueue) pop(db *Db, bcount int) (ret int) {
         links[x].count--
         lcount := links[x].count
 
-        for lcount > 0 {
+        if lcount > 0 {
             if db.dbsIO[index].mmap != nil {
                 addr := &db.dbsIO[index].mmap[links[x].blockId*DB_BASE_SIZE]
                 plink := (*DbFreeBlockQueue)(unsafe.Pointer(addr))
                 links[x].index = plink.index
                 links[x].blockId = plink.blockId
             } else {
-                // syscall.Pread(db.indexIO.fd, SizeOfDbFreeBlockQueue, links[x].blockId*DB_BASE_SIZE)
+
+                readCount, err := db.indexIO.file.ReadAt(buf[:SizeOfDbFreeBlockQueue], int64(links[x].blockId*DB_BASE_SIZE))
+                if err != nil {
+                    return
+                }
+                if readCount > 0 {
+                    buf1.Write(buf)
+                    dec := gob.NewDecoder(&buf1)
+                    dec.Decode(&link)
+                    links[x].index = link.index
+                    links[x].blockId = link.blockId
+                }
             }
         }
     } else {
-
+        x = db.state.lastId
+        left = int(db.dbsIO[x].size) - db.state.lastOff
+        if left < DB_BASE_SIZE*bcount {
+            db_id = x
+            block_id = db.state.lastOff / DB_BASE_SIZE
+            block_size = left
+            db.state.lastOff = DB_BASE_SIZE * bcount
+        }
     }
 
     return

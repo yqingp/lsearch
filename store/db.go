@@ -90,12 +90,14 @@ func (self *Db) set(id int, value []byte) int {
 
     blocksCountNum := 0
 
+    _ = blocksCountNum
     self.indexMutex.Lock()
     self.checkIndexIOWithId(id)
     self.indexMutex.Unlock()
 
     self.lockId(id)
     freeQueue, oldFreeQueue := DbFreeBlockQueue{}, DbFreeBlockQueue{}
+    _ = freeQueue
     if dbIndexes[id].blockSize < valueLen {
         if dbIndexes[id].blockSize > 0 {
             oldFreeQueue.index = dbIndexes[id].index

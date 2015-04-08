@@ -6,6 +6,7 @@ import (
     "github.com/yqingp/lsearch/mmap"
     "os"
     "path/filepath"
+    "strconv"
     "unsafe"
 )
 
@@ -31,7 +32,7 @@ func (self *Db) initFreeBlockQueue() {
 
     f, err := os.OpenFile(freeBlockQueueFileName, os.O_CREATE|os.O_RDWR, 0664)
     if err != nil {
-        self.logger.Fatal("create free block queue error")
+        self.logger.Fatal(err)
         os.Exit(-1)
     }
     self.freeBlockQueueIO.fd = int(f.Fd())
@@ -39,7 +40,7 @@ func (self *Db) initFreeBlockQueue() {
 
     fstat, err := os.Stat(freeBlockQueueFileName)
     if err != nil {
-        self.logger.Fatal("stat free block queue error")
+        self.logger.Fatal(err)
     }
 
     self.freeBlockQueueIO.end = fstat.Size()
@@ -48,13 +49,13 @@ func (self *Db) initFreeBlockQueue() {
         self.freeBlockQueueIO.size = self.freeBlockQueueIO.end
 
         if err := os.Truncate(freeBlockQueueFileName, self.freeBlockQueueIO.size); err != nil {
-            self.logger.Fatal("truncate stat free block queue file error")
+            self.logger.Fatal(err)
         }
     }
 
     var errNo error
     if self.freeBlockQueueIO.mmap, errNo = mmap.MmapFile(self.freeBlockQueueIO.fd, int(self.freeBlockQueueIO.end)); errNo != nil {
-        self.logger.Fatal("mmap stat free block queue file error")
+        self.logger.Fatal(errNo)
     }
 
     self.freeBlockQueues = (*[DB_LNK_MAX]DbFreeBlockQueue)(unsafe.Pointer(&self.freeBlockQueueIO.mmap[0]))[:DB_LNK_MAX]
@@ -133,6 +134,29 @@ func (self *DbFreeBlockQueue) pop(db *Db, bcount int) (ret int) {
             block_id = db.state.lastOff / DB_BASE_SIZE
             block_size = left
             db.state.lastOff = DB_BASE_SIZE * bcount
+            db.state.lastId++
+            x = db.state.lastId
+
+            if x >= DB_MFILE_MAX {
+                db.logger.Fatal("pop block dbs error")
+            }
+
+            currentDbPath := filepath.Join(db.basedir, "base", strconv.Itoa(x/DB_DIR_FILES))
+            if err := os.MkdirAll(currentDbPath, 0755); err != nil {
+                db.logger.Fatal(err)
+            }
+            currentDbFileName := filepath.Join(currentDbPath, strconv.Itoa(x)+".db")
+            file, err := os.OpenFile(currentDbFileName, os.O_CREATE|os.O_RDWR, 0644)
+            if err != nil {
+                db.logger.Fatal(err)
+            }
+
+            db.dbsIO[x].fd = int(file.Fd())
+            db.dbsIO[x].file = file
+
+            if err := file.Truncate(DB_MFILE_SIZE); err != nil {
+                db.logger.Fatal(err)
+            }
         }
     }
 

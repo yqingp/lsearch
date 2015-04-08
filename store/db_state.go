@@ -22,14 +22,14 @@ func (self *Db) initState() {
 
     f, err := os.OpenFile(stateFileName, os.O_CREATE|os.O_RDWR, 0664)
     if err != nil {
-        self.logger.Fatal("create stateFile error")
+        self.logger.Fatal(err)
     }
     self.stateIO.fd = int(f.Fd())
     self.stateIO.file = f
 
     fstat, err := os.Stat(stateFileName)
     if err != nil {
-        self.logger.Fatal("fstat stateFile error")
+        self.logger.Fatal(err)
     }
 
     self.stateIO.end = fstat.Size()
@@ -38,13 +38,13 @@ func (self *Db) initState() {
         self.stateIO.size = self.stateIO.end
 
         if err := os.Truncate(stateFileName, self.stateIO.end); err != nil {
-            self.logger.Fatal("truncate state file error")
+            self.logger.Fatal(err)
         }
     }
 
     var errNo error
     if self.stateIO.mmap, errNo = mmap.MmapFile(self.stateIO.fd, int(self.stateIO.end)); errNo != nil {
-        self.logger.Fatal("mmap state file error")
+        self.logger.Fatal(err)
     }
 
     self.state = (*DbState)(unsafe.Pointer(&self.stateIO.mmap[0]))

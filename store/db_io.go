@@ -28,7 +28,7 @@ func (self *Db) checkDbIOMmap(i int) {
     if dbsio.mmap == nil {
         m, err := mmap.MmapFile(dbsio.fd, int(dbsio.size))
         if err != nil {
-            self.logger.Fatal("init dbs mmap error")
+            self.logger.Fatal(err)
         }
         dbsio.mmap = m
     }
@@ -39,19 +39,19 @@ func (self *Db) initDbsIO() {
     for i := 0; i < self.state.lastId; i++ {
         currentDbPath := filepath.Join(self.basedir, "base", strconv.Itoa(i/DB_DIR_FILES))
         if err := os.MkdirAll(currentDbPath, 0755); err != nil {
-            self.logger.Fatal("init dbs: mkdir error; check perm")
+            self.logger.Fatal(err)
         }
 
         currentDbFileName := filepath.Join(currentDbPath, strconv.Itoa(i)+".db")
         self.dbsIO[i].mutex = &sync.Mutex{}
         file, err := os.OpenFile(currentDbFileName, os.O_CREATE|os.O_RDWR, 0644)
         if err != nil {
-            self.logger.Fatal("init dbs:open db file error")
+            self.logger.Fatal(err)
         }
 
         fstat, err := file.Stat()
         if err != nil {
-            self.logger.Fatal("init dbs: db file stat error")
+            self.logger.Fatal(err)
         }
 
         self.dbsIO[i].file = file
@@ -61,7 +61,7 @@ func (self *Db) initDbsIO() {
             self.dbsIO[i].size = DB_MFILE_MAX
 
             if err := file.Truncate(self.dbsIO[i].size); err != nil {
-                self.logger.Fatal("init dbs: truncate error")
+                self.logger.Fatal(err)
             }
         } else {
             self.dbsIO[i].size = fstat.Size()
@@ -87,7 +87,7 @@ func (db *Db) checkIndexIOWithId(id int) {
         db.indexIO.end = int64(id)/int64(DB_DBX_BASE) + 1
         db.indexIO.end += SizeofDbIndex * int64(DB_DBX_BASE)
         if err := db.indexIO.file.Truncate(db.indexIO.end); err != nil {
-            db.logger.Fatal("db index file truncate error; exit")
+            db.logger.Fatal(err)
         }
     }
 }

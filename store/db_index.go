@@ -20,14 +20,14 @@ func (self *Db) initIndex() {
 
     f, err := os.OpenFile(indexFileName, os.O_CREATE|os.O_RDWR, 0664)
     if err != nil {
-        self.logger.Fatal("create free block queue error")
+        self.logger.Fatal(err)
     }
     self.indexIO.fd = int(f.Fd())
     self.indexIO.file = f
 
     fstat, err := os.Stat(indexFileName)
     if err != nil {
-        self.logger.Fatal("stat free block queue error")
+        self.logger.Fatal(err)
     }
 
     self.indexIO.end = fstat.Size()
@@ -36,7 +36,7 @@ func (self *Db) initIndex() {
     var errNo error
 
     if self.indexIO.mmap, errNo = mmap.MmapFile(self.indexIO.fd, int(self.indexIO.size)); errNo != nil {
-        self.logger.Fatal("mmap stat free block queue file error")
+        self.logger.Fatal(err)
     }
 
     self.indexes = (*[DB_DBX_MAX]DbIndex)(unsafe.Pointer(&self.indexIO.mmap[0]))[:DB_DBX_MAX]
@@ -45,7 +45,7 @@ func (self *Db) initIndex() {
         self.indexIO.end = DB_DBX_BASE * SizeofDbIndex
 
         if err := os.Truncate(indexFileName, self.indexIO.end); err != nil {
-            self.logger.Fatal("truncate stat free block queue file error")
+            self.logger.Fatal(err)
         }
     }
 

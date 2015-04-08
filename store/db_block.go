@@ -7,6 +7,7 @@ import (
     "os"
     "path/filepath"
     "strconv"
+    "sync"
     "unsafe"
 )
 
@@ -157,8 +158,31 @@ func (self *DbFreeBlockQueue) pop(db *Db, bcount int) (ret int) {
             if err := file.Truncate(DB_MFILE_SIZE); err != nil {
                 db.logger.Fatal(err)
             }
+
+            db.dbsIO[x].mutex = &sync.Mutex{}
+            db.dbsIO[x].end = DB_MFILE_SIZE
+            db.dbsIO[x].size = DB_MFILE_SIZE
+            db.dbsIO[x].checkDbIOMmap(db)
+            self.count = bcount
+            self.index = x
+            self.blockId = 0
+            ret = 0
+        } else {
+            self.count = bcount
+            self.index = x
+            self.blockId = (db.state.lastOff / DB_BASE_SIZE)
+            db.state.lastOff += DB_BASE_SIZE * bcount
+            ret = 0
         }
     }
 
+    if block_id >= 0 {
+        self.push(db, db_id, block_id, block_size)
+    }
+
     return
+}
+
+func (self *DbFreeBlockQueue) push(db *Db, index int, blockid int, block_size int) {
+
 }

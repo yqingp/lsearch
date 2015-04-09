@@ -11,7 +11,7 @@ import (
     "unsafe"
 )
 
-type DbFreeBlockQueue struct {
+type DbBlockQueue struct {
     index   int
     blockId int
     count   int
@@ -29,37 +29,37 @@ type DbBlock struct {
 }
 
 func (self *Db) initFreeBlockQueue() {
-    freeBlockQueueFileName := filepath.Join(self.basedir, "db.freeq")
+    blockQueueFileName := filepath.Join(self.basedir, "db.blkq")
 
-    f, err := os.OpenFile(freeBlockQueueFileName, os.O_CREATE|os.O_RDWR, 0664)
+    f, err := os.OpenFile(blockQueueFileName, os.O_CREATE|os.O_RDWR, 0664)
     if err != nil {
         self.logger.Fatal(err)
         os.Exit(-1)
     }
-    self.freeBlockQueueIO.fd = int(f.Fd())
-    self.freeBlockQueueIO.file = f
+    self.blockQueueIO.fd = int(f.Fd())
+    self.blockQueueIO.file = f
 
-    fstat, err := os.Stat(freeBlockQueueFileName)
+    fstat, err := os.Stat(blockQueueFileName)
     if err != nil {
         self.logger.Fatal(err)
     }
 
-    self.freeBlockQueueIO.end = fstat.Size()
+    self.blockQueueIO.end = fstat.Size()
     if fstat.Size() == 0 {
-        self.freeBlockQueueIO.end = DB_LNK_MAX * SizeOfDbFreeBlockQueue
-        self.freeBlockQueueIO.size = self.freeBlockQueueIO.end
+        self.blockQueueIO.end = DB_LNK_MAX * SizeOfDbBlockQueue
+        self.blockQueueIO.size = self.blockQueueIO.end
 
-        if err := os.Truncate(freeBlockQueueFileName, self.freeBlockQueueIO.size); err != nil {
+        if err := os.Truncate(blockQueueFileName, self.blockQueueIO.size); err != nil {
             self.logger.Fatal(err)
         }
     }
 
     var errNo error
-    if self.freeBlockQueueIO.mmap, errNo = mmap.MmapFile(self.freeBlockQueueIO.fd, int(self.freeBlockQueueIO.end)); errNo != nil {
+    if self.blockQueueIO.mmap, errNo = mmap.MmapFile(self.blockQueueIO.fd, int(self.blockQueueIO.end)); errNo != nil {
         self.logger.Fatal(errNo)
     }
 
-    self.freeBlockQueues = (*[DB_LNK_MAX]DbFreeBlockQueue)(unsafe.Pointer(&self.freeBlockQueueIO.mmap[0]))[:DB_LNK_MAX]
+    self.blockQueues = (*[DB_LNK_MAX]DbBlockQueue)(unsafe.Pointer(&self.blockQueueIO.mmap[0]))[:DB_LNK_MAX]
 }
 
 func blocksCount(blen int) int {
@@ -71,7 +71,7 @@ func blocksCount(blen int) int {
     return ret
 }
 
-func (self *DbFreeBlockQueue) pop(db *Db, bcount int) (ret int) {
+func (self *DbBlockQueue) pop(db *Db, bcount int) (ret int) {
     ret = -1
     if db == nil || bcount < 1 {
         return
@@ -80,11 +80,11 @@ func (self *DbFreeBlockQueue) pop(db *Db, bcount int) (ret int) {
     db.freeBlockMutex.Lock()
     defer db.freeBlockMutex.Unlock()
 
-    links := db.freeBlockQueues
-    var plink *DbFreeBlockQueue
+    links := db.blockQueues
+    var plink *DbBlockQueue
     _ = plink
 
-    var link DbFreeBlockQueue
+    var link DbBlockQueue
 
     var buf []byte
     var buf1 bytes.Buffer
@@ -109,12 +109,12 @@ func (self *DbFreeBlockQueue) pop(db *Db, bcount int) (ret int) {
         if lcount > 0 {
             if db.dbsIO[index].mmap != nil {
                 addr := &db.dbsIO[index].mmap[links[x].blockId*DB_BASE_SIZE]
-                plink := (*DbFreeBlockQueue)(unsafe.Pointer(addr))
+                plink := (*DbBlockQueue)(unsafe.Pointer(addr))
                 links[x].index = plink.index
                 links[x].blockId = plink.blockId
             } else {
 
-                readCount, err := db.indexIO.file.ReadAt(buf[:SizeOfDbFreeBlockQueue], int64(links[x].blockId*DB_BASE_SIZE))
+                readCount, err := db.indexIO.file.ReadAt(buf[:SizeOfDbBlockQueue], int64(links[x].blockId*DB_BASE_SIZE))
                 if err != nil {
                     return
                 }
@@ -183,6 +183,6 @@ func (self *DbFreeBlockQueue) pop(db *Db, bcount int) (ret int) {
     return
 }
 
-func (self *DbFreeBlockQueue) push(db *Db, index int, blockid int, block_size int) {
+func (self *DbBlockQueue) push(db *Db, index int, blockid int, block_size int) {
 
 }

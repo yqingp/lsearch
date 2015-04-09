@@ -9,28 +9,28 @@ import (
 )
 
 type Db struct {
-    status           int
-    blockMax         int
-    mmTotal          int64
-    xxTotal          int64
-    mutex            *sync.Mutex
-    freeBlockMutex   *sync.Mutex
-    indexMutex       *sync.Mutex
-    blockMutex       *sync.Mutex
-    state            *DbState
-    stateIO          DbIO
-    freeBlockQueueIO DbIO
-    freeBlockQueues  []DbFreeBlockQueue
-    indexIO          DbIO
-    indexes          []DbIndex
-    dbsIO            [DB_MFILE_MAX]DbIO
-    blocks           [DB_XBLOCKS_MAX]DbBlock
-    basedir          string
-    kmap             *util.Mmtrie
-    loggerFile       *os.File
-    logger           *log.Logger
-    isMmap           bool
-    mutexs           [DB_MUTEX_MAX]*sync.Mutex
+    status         int
+    blockMax       int
+    mmTotal        int64
+    xxTotal        int64
+    mutex          *sync.Mutex
+    freeBlockMutex *sync.Mutex
+    indexMutex     *sync.Mutex
+    blockMutex     *sync.Mutex
+    state          *DbState
+    stateIO        DbIO
+    blockQueueIO   DbIO
+    blockQueues    []DbBlockQueue
+    indexIO        DbIO
+    indexes        []DbIndex
+    dbsIO          [DB_MFILE_MAX]DbIO
+    blocks         [DB_XBLOCKS_MAX]DbBlock
+    basedir        string
+    kmap           *util.Mmtrie
+    loggerFile     *os.File
+    logger         *log.Logger
+    isMmap         bool
+    mutexs         [DB_MUTEX_MAX]*sync.Mutex
 }
 
 func Open(basedir string, isMmap bool) (*Db, error) {
@@ -96,7 +96,7 @@ func (self *Db) set(id int, value []byte) int {
     self.indexMutex.Unlock()
 
     self.lockId(id)
-    freeQueue, oldFreeQueue := DbFreeBlockQueue{}, DbFreeBlockQueue{}
+    freeQueue, oldFreeQueue := DbBlockQueue{}, DbBlockQueue{}
     _ = freeQueue
     if dbIndexes[id].blockSize < valueLen {
         if dbIndexes[id].blockSize > 0 {

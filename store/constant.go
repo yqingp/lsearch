@@ -26,7 +26,7 @@ const (
 )
 
 const (
-    SizeOfDbState          = int64(unsafe.Sizeof(DbState{}))
-    SizeOfDbFreeBlockQueue = int64(unsafe.Sizeof(DbFreeBlockQueue{}))
-    SizeofDbIndex          = int64(unsafe.Sizeof(DbIndex{}))
+    SizeOfDbState      = int64(unsafe.Sizeof(DbState{}))
+    SizeOfDbBlockQueue = int64(unsafe.Sizeof(DbBlockQueue{}))
+    SizeofDbIndex      = int64(unsafe.Sizeof(DbIndex{}))
 )

@@ -19,21 +19,21 @@ type DbIO struct {
     file  *os.File
 }
 
-func (self *Db) checkDbIOMmap(i int) {
-    dbsio := self.dbsIO[i]
+// func (self *Db) checkDbIOMmap(i int) {
+//     dbsio := self.dbsIO[i]
 
-    if dbsio.fd < 1 || dbsio.file == nil {
-        return
-    }
-    if dbsio.mmap == nil {
-        m, err := mmap.MmapFile(dbsio.fd, int(dbsio.size))
-        if err != nil {
-            self.logger.Fatal(err)
-        }
-        dbsio.mmap = m
-    }
+//     if dbsio.fd < 1 || dbsio.file == nil {
+//         return
+//     }
+//     if dbsio.mmap == nil {
+//         m, err := mmap.MmapFile(dbsio.fd, int(dbsio.size))
+//         if err != nil {
+//             self.logger.Fatal(err)
+//         }
+//         dbsio.mmap = m
+//     }
 
-}
+// }
 
 func (self *DbIO) checkDbIOMmap(db *Db) {
     if self.fd < 1 || self.file == nil {
@@ -81,7 +81,8 @@ func (self *Db) initDbsIO() {
         }
 
         if self.isMmap {
-            self.checkDbIOMmap(i)
+            self.dbsIO[i].checkDbIOMmap(self)
+            // self.checkDbIOMmap(i)
         }
     }
 

@@ -77,8 +77,8 @@ func (self *DbBlockQueue) pop(db *Db, bcount int) (ret int) {
         return
     }
 
-    db.freeBlockMutex.Lock()
-    defer db.freeBlockMutex.Unlock()
+    db.blockQueueMutex.Lock()
+    defer db.blockQueueMutex.Unlock()
 
     links := db.blockQueues
     var plink *DbBlockQueue
@@ -88,10 +88,10 @@ func (self *DbBlockQueue) pop(db *Db, bcount int) (ret int) {
 
     var buf []byte
     var buf1 bytes.Buffer
-    x, index, left, db_id, block_id, block_size := bcount, 0, 0, -1, -1, 0
-    _ = db_id
-    _ = block_id
-    _ = block_size
+    x, index, left, dbId, blockId, blockSize := bcount, 0, 0, -1, -1, 0
+    _ = dbId
+    _ = blockId
+    _ = blockSize
     if links != nil {
         index = links[x].index
     }
@@ -107,33 +107,32 @@ func (self *DbBlockQueue) pop(db *Db, bcount int) (ret int) {
         lcount := links[x].count
 
         if lcount > 0 {
+
             if db.dbsIO[index].mmap != nil {
                 addr := &db.dbsIO[index].mmap[links[x].blockId*DB_BASE_SIZE]
                 plink := (*DbBlockQueue)(unsafe.Pointer(addr))
                 links[x].index = plink.index
                 links[x].blockId = plink.blockId
             } else {
-
                 readCount, err := db.indexIO.file.ReadAt(buf[:SizeOfDbBlockQueue], int64(links[x].blockId*DB_BASE_SIZE))
-                if err != nil {
-                    return
+                if err != nil || readCount < 0 {
+                    db.logger.Fatal("read index file error")
                 }
-                if readCount > 0 {
-                    buf1.Write(buf)
-                    dec := gob.NewDecoder(&buf1)
-                    dec.Decode(&link)
-                    links[x].index = link.index
-                    links[x].blockId = link.blockId
-                }
+                buf1.Write(buf)
+                dec := gob.NewDecoder(&buf1)
+                dec.Decode(&link)
+                links[x].index = link.index
+                links[x].blockId = link.blockId
             }
+
         }
     } else {
         x = db.state.lastId
         left = int(db.dbsIO[x].size) - db.state.lastOff
         if left < DB_BASE_SIZE*bcount {
-            db_id = x
-            block_id = db.state.lastOff / DB_BASE_SIZE
-            block_size = left
+            dbId = x
+            blockId = db.state.lastOff / DB_BASE_SIZE
+            blockSize = left
             db.state.lastOff = DB_BASE_SIZE * bcount
             db.state.lastId++
             x = db.state.lastId
@@ -176,13 +175,46 @@ func (self *DbBlockQueue) pop(db *Db, bcount int) (ret int) {
         }
     }
 
-    if block_id >= 0 {
-        self.push(db, db_id, block_id, block_size)
+    if blockId >= 0 {
+        self.push(db, dbId, blockId, blockSize)
     }
 
     return
 }
 
-func (self *DbBlockQueue) push(db *Db, index int, blockid int, block_size int) {
+func (self *DbBlockQueue) push(db *Db, index int, blockId int, blockSize int) int {
+    ret, x := -1, 0
+    x = blocksCount(blockSize)
+    var buf bytes.Buffer
+    var link *DbBlockQueue
+    if db != nil && blockId >= 0 && x > 0 && db.status == 0 && x < DB_LNK_MAX && index >= 0 && index < DB_MFILE_MAX {
+        db.blockQueueMutex.Lock()
+        defer db.blockQueueMutex.Unlock()
 
+        if db.blockQueues != nil {
+            if db.blockQueues[x].count > 0 {
+                if db.dbsIO[index].mmap != nil {
+                    addr := &db.dbsIO[index].mmap[blockId*DB_BASE_SIZE]
+                    link = (*DbBlockQueue)(unsafe.Pointer(addr))
+                    link.index = db.blockQueues[x].index
+                    link.blockId = db.blockQueues[x].blockId
+                } else {
+                    enc := gob.NewEncoder(&buf)
+                    enc.Encode(&link)
+                    link.index = db.blockQueues[x].index
+                    link.blockId = db.blockQueues[x].blockId
+                    writeCount, err := db.indexIO.file.WriteAt(buf.Bytes()[:SizeOfDbBlockQueue], int64(blockId*DB_BASE_SIZE))
+                    if err != nil || writeCount < 0 {
+                        db.logger.Fatal("write index file error")
+                    }
+                }
+            }
+            db.blockQueues[x].index = index
+            db.blockQueues[x].blockId = blockId
+            db.blockQueues[x].count++
+            ret = 0
+        }
+    }
+
+    return ret
 }

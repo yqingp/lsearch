@@ -9,28 +9,28 @@ import (
 )
 
 type Db struct {
-    status         int
-    blockMax       int
-    mmTotal        int64
-    xxTotal        int64
-    mutex          *sync.Mutex
-    freeBlockMutex *sync.Mutex
-    indexMutex     *sync.Mutex
-    blockMutex     *sync.Mutex
-    state          *DbState
-    stateIO        DbIO
-    blockQueueIO   DbIO
-    blockQueues    []DbBlockQueue
-    indexIO        DbIO
-    indexes        []DbIndex
-    dbsIO          [DB_MFILE_MAX]DbIO
-    blocks         [DB_XBLOCKS_MAX]DbBlock
-    basedir        string
-    kmap           *util.Mmtrie
-    loggerFile     *os.File
-    logger         *log.Logger
-    isMmap         bool
-    mutexs         [DB_MUTEX_MAX]*sync.Mutex
+    status          int
+    blockMax        int
+    mmTotal         int64
+    xxTotal         int64
+    mutex           *sync.Mutex
+    blockQueueMutex *sync.Mutex
+    indexMutex      *sync.Mutex
+    blockMutex      *sync.Mutex
+    state           *DbState
+    stateIO         DbIO
+    blockQueueIO    DbIO
+    blockQueues     []DbBlockQueue
+    indexIO         DbIO
+    indexes         []DbIndex
+    dbsIO           [DB_MFILE_MAX]DbIO
+    blocks          [DB_XBLOCKS_MAX]DbBlock
+    basedir         string
+    kmap            *util.Mmtrie
+    loggerFile      *os.File
+    logger          *log.Logger
+    isMmap          bool
+    mutexs          [DB_MUTEX_MAX]*sync.Mutex
 }
 
 func Open(basedir string, isMmap bool) (*Db, error) {
@@ -40,7 +40,7 @@ func Open(basedir string, isMmap bool) (*Db, error) {
 
     db := &Db{}
 
-    db.freeBlockMutex = &sync.Mutex{}
+    db.blockQueueMutex = &sync.Mutex{}
     db.indexMutex = &sync.Mutex{}
     db.blockMutex = &sync.Mutex{}
     db.mutex = &sync.Mutex{}
@@ -73,12 +73,12 @@ func (self *Db) Set(id int, key []byte, value []byte) (int, error) {
         }
     }
 
-    self.set(id, value)
+    self.internalSet(id, value)
 
     return id, nil
 }
 
-func (self *Db) set(id int, value []byte) int {
+func (self *Db) internalSet(id int, value []byte) int {
 
     ret := -1
     dbIndexes := self.indexes
@@ -90,25 +90,45 @@ func (self *Db) set(id int, value []byte) int {
 
     blocksCountNum := 0
 
+    index := 0
     _ = blocksCountNum
     self.indexMutex.Lock()
     self.checkIndexIOWithId(id)
     self.indexMutex.Unlock()
 
     self.lockId(id)
-    freeQueue, oldFreeQueue := DbBlockQueue{}, DbBlockQueue{}
-    _ = freeQueue
+    link, old := DbBlockQueue{}, DbBlockQueue{}
+    _ = link
     if dbIndexes[id].blockSize < valueLen {
         if dbIndexes[id].blockSize > 0 {
-            oldFreeQueue.index = dbIndexes[id].index
-            oldFreeQueue.blockId = dbIndexes[id].blockId
-            oldFreeQueue.count = blocksCount(dbIndexes[id].blockSize)
+            old.index = dbIndexes[id].index
+            old.blockId = dbIndexes[id].blockId
+            old.count = blocksCount(dbIndexes[id].blockSize)
             dbIndexes[id].blockSize = 0
             dbIndexes[id].blockId = 0
             dbIndexes[id].ndata = 0
         }
 
         blocksCountNum = blocksCount(valueLen)
+        if link.pop(self, blocksCountNum) == 0 {
+            dbIndexes[id].index = link.index
+            dbIndexes[id].blockId = link.blockId
+            dbIndexes[id].blockSize = blocksCountNum * DB_BASE_SIZE
+            if valueLen > dbIndexes[id].blockSize {
+                self.logger.Fatal("Invalid  block")
+            }
+        } else {
+            self.logger.Fatal("pop block error")
+        }
+    }
+
+    if dbIndexes[id].blockSize > valueLen && dbIndexes[id].index > 0 && self.dbsIO[index].file != nil {
+        index = dbIndexes[id].index
+        if self.isMmap && dbIndexes[id].blockId > 0 && self.dbsIO[index].mmap != nil {
+
+        } else {
+
+        }
     }
 
     self.unlockId(id)

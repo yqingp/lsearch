@@ -48,12 +48,16 @@ func Open(basedir string, isMmap bool) (*Db, error) {
     db.basedir = basedir
     db.isMmap = isMmap
 
-    if err := db.initKmap(); err != nil {
+    if err := db.initDir(); err != nil {
         return nil, err
     }
 
     if err := db.initLogger(); err != nil {
         return nil, err
+    }
+
+    if err := db.initKmap(); err != nil {
+
     }
 
     return db, nil
@@ -69,12 +73,16 @@ func (self *Db) Set(id int, key []byte, value []byte) (int, error) {
 
     if id < 1 {
         id, err = self.kmap.Set(key)
-        if err == nil {
+        if err != nil {
+            self.logger.Println(err)
             return -1, err
         }
     }
 
-    self.internalSet(id, value)
+    ret := self.internalSet(id, value)
+    if ret == -1 {
+        self.logger.Fatal("set error")
+    }
 
     return id, nil
 }

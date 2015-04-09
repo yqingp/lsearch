@@ -12,7 +12,7 @@ type DbIndex struct {
     blockId   int
     ndata     int
     index     int
-    modTime   int
+    modTime   int64
 }
 
 func (self *Db) initIndex() {

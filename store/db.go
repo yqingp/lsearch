@@ -6,6 +6,7 @@ import (
     "log"
     "os"
     "sync"
+    "time"
 )
 
 type Db struct {
@@ -125,13 +126,32 @@ func (self *Db) internalSet(id int, value []byte) int {
     if dbIndexes[id].blockSize > valueLen && dbIndexes[id].index > 0 && self.dbsIO[index].file != nil {
         index = dbIndexes[id].index
         if self.isMmap && dbIndexes[id].blockId > 0 && self.dbsIO[index].mmap != nil {
+            for k, v := range value {
+                self.dbsIO[index].mmap[dbIndexes[id].blockId*DB_BASE_SIZE+k] = v
+            }
 
+            dbIndexes[id].ndata = valueLen
+            ret = id
         } else {
+            writeCount, err := self.indexIO.file.WriteAt(value, int64(dbIndexes[id].blockId*DB_BASE_SIZE))
+            if err != nil || writeCount != valueLen {
+                dbIndexes[id].ndata = 0
+                self.logger.Fatal("write index error")
+            }
 
+            dbIndexes[id].ndata = valueLen
+            ret = id
         }
     }
 
+    if dbIndexes[id].ndata > self.state.dataLenMax {
+        self.state.dataLenMax = dbIndexes[id].ndata
+    }
+    dbIndexes[id].modTime = time.Now().Unix()
     self.unlockId(id)
+    if old.count > 0 {
+        link.push(self, old.index, old.blockId, old.count*DB_BASE_SIZE)
+    }
 
     return ret
 }

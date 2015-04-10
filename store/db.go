@@ -21,7 +21,7 @@ type DB struct {
     indexes         []Index
     IOs             [MaxDbFileCount]IO
     baseDir         string
-    keyMapTrie      *Mmtrie
+    keyMapTrie      *Trie
     loggerFile      *os.File
     isMmap          bool
 }

@@ -4,7 +4,6 @@
   go get github.com/yqingp/lsearch
 
 
-
 ##使用
   ```go
   package main

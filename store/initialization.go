@@ -7,7 +7,7 @@ import (
     "path/filepath"
 )
 
-func (self *Db) initKmap() error {
+func (self *DB) initKmap() error {
     var err error
     kmapfileName := filepath.Join(self.basedir, "db.kmap")
     if self.kmap, err = util.Open(kmapfileName); err != nil {
@@ -17,7 +17,7 @@ func (self *Db) initKmap() error {
     return nil
 }
 
-func (self *Db) initLogger() error {
+func (self *DB) initLogger() error {
     loggerFileName := filepath.Join(self.basedir, "db.log")
 
     f, err := os.OpenFile(loggerFileName, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0755)
@@ -31,7 +31,7 @@ func (self *Db) initLogger() error {
     return nil
 }
 
-func (self *Db) initDir() error {
+func (self *DB) initDir() error {
     if err := os.MkdirAll(self.basedir, 0755); err != nil {
         return err
     }

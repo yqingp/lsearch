@@ -9,37 +9,33 @@ import (
     "time"
 )
 
-type Db struct {
+type DB struct {
     status          int
-    blockMax        int
-    mmTotal         int64
-    xxTotal         int64
     mutex           *sync.Mutex
     blockQueueMutex *sync.Mutex
     indexMutex      *sync.Mutex
     blockMutex      *sync.Mutex
-    state           *DbState
-    stateIO         DbIO
-    blockQueueIO    DbIO
-    blockQueues     []DbBlockQueue
-    indexIO         DbIO
-    indexes         []DbIndex
-    dbsIO           [DB_MFILE_MAX]DbIO
-    blocks          [DB_XBLOCKS_MAX]DbBlock
+    state           *State
+    stateIO         IO
+    blockQueueIO    IO
+    indexIO         IO
+    blockQueues     []BlockQueue
+    indexes         []Index
+    dbsIO           [MaxDbFileCount]IO
     basedir         string
     kmap            *util.Mmtrie
     loggerFile      *os.File
     logger          *log.Logger
     isMmap          bool
-    mutexs          [DB_MUTEX_MAX]*sync.Mutex
+    mutexs          [MaxMutexCount]*sync.Mutex
 }
 
-func Open(basedir string, isMmap bool) (*Db, error) {
+func Open(basedir string, isMmap bool) (*DB, error) {
     if basedir == "" {
         return nil, errors.New("basedir is blank")
     }
 
-    db := &Db{}
+    db := &DB{}
 
     db.blockQueueMutex = &sync.Mutex{}
     db.indexMutex = &sync.Mutex{}
@@ -68,7 +64,7 @@ func Open(basedir string, isMmap bool) (*Db, error) {
     return db, nil
 }
 
-func (self *Db) Close() {
+func (self *DB) Close() {
     if self.loggerFile != nil {
         self.loggerFile.Close()
     }
@@ -85,7 +81,7 @@ func (self *Db) Close() {
 }
 
 // if id is < 1  generate auto increment id
-func (self *Db) Set(id int, key []byte, value []byte) (int, error) {
+func (self *DB) Set(id int, key []byte, value []byte) (int, error) {
     if key == nil || value == nil || len(value) == 0 {
         return -1, errors.New("key or value is blank")
     }
@@ -107,10 +103,10 @@ func (self *Db) Set(id int, key []byte, value []byte) (int, error) {
     return id, nil
 }
 
-func (self *Db) internalSet(id int, value []byte) int {
+func (self *DB) internalSet(id int, value []byte) int {
     ret := -1
-    dbIndexes := self.indexes
-    if self.status != 0 || dbIndexes == nil {
+    indexes := self.indexes
+    if self.status != 0 || indexes == nil {
         return ret
     }
 
@@ -126,24 +122,24 @@ func (self *Db) internalSet(id int, value []byte) int {
 
     self.lockId(id)
     defer self.unlockId(id)
-    link, old := &DbBlockQueue{}, &DbBlockQueue{}
+    link, old := &BlockQueue{}, &BlockQueue{}
 
-    if dbIndexes[id].blockSize < valueLen {
-        if dbIndexes[id].blockSize > 0 {
-            old.index = dbIndexes[id].index
-            old.blockId = dbIndexes[id].blockId
-            old.count = blocksCount(dbIndexes[id].blockSize)
-            dbIndexes[id].blockSize = 0
-            dbIndexes[id].blockId = 0
-            dbIndexes[id].ndata = 0
+    if indexes[id].blockSize < valueLen {
+        if indexes[id].blockSize > 0 {
+            old.index = indexes[id].index
+            old.blockId = indexes[id].blockId
+            old.count = blocksCount(indexes[id].blockSize)
+            indexes[id].blockSize = 0
+            indexes[id].blockId = 0
+            indexes[id].dataLen = 0
         }
 
         blocksCountNum = blocksCount(valueLen)
         if link.pop(self, blocksCountNum) == 0 {
-            dbIndexes[id].index = link.index
-            dbIndexes[id].blockId = link.blockId
-            dbIndexes[id].blockSize = blocksCountNum * DB_BASE_SIZE
-            if valueLen > dbIndexes[id].blockSize {
+            indexes[id].index = link.index
+            indexes[id].blockId = link.blockId
+            indexes[id].blockSize = blocksCountNum * BaseDbSize
+            if valueLen > indexes[id].blockSize {
                 self.logger.Fatal("Invalid  block")
             }
         } else {
@@ -151,50 +147,51 @@ func (self *Db) internalSet(id int, value []byte) int {
         }
     }
 
-    if dbIndexes[id].blockSize >= valueLen && dbIndexes[id].index >= 0 && self.dbsIO[index].file != nil {
-        index = dbIndexes[id].index
-        if self.isMmap && dbIndexes[id].blockId >= 0 && self.dbsIO[index].mmap != nil {
+    if indexes[id].blockSize >= valueLen && indexes[id].index >= 0 && self.dbsIO[index].file != nil {
+        index = indexes[id].index
+        if self.isMmap && indexes[id].blockId >= 0 && self.dbsIO[index].mmap != nil {
             for k, v := range value {
-                self.dbsIO[index].mmap[dbIndexes[id].blockId*DB_BASE_SIZE+k] = v
+                self.dbsIO[index].mmap[indexes[id].blockId*BaseDbSize+k] = v
             }
 
-            dbIndexes[id].ndata = valueLen
+            indexes[id].dataLen = valueLen
             ret = id
         } else {
-            writeCount, err := self.indexIO.file.WriteAt(value, int64(dbIndexes[id].blockId*DB_BASE_SIZE))
+            writeCount, err := self.indexIO.file.WriteAt(value, int64(indexes[id].blockId*BaseDbSize))
             if err != nil || writeCount != valueLen {
-                dbIndexes[id].ndata = 0
+                indexes[id].dataLen = 0
                 self.logger.Fatal("write index error")
             }
 
-            dbIndexes[id].ndata = valueLen
+            indexes[id].dataLen = valueLen
             ret = id
         }
     }
 
-    if dbIndexes[id].ndata > self.state.dataLenMax {
-        self.state.dataLenMax = dbIndexes[id].ndata
+    if indexes[id].dataLen > self.state.dataLenMax {
+        self.state.dataLenMax = indexes[id].dataLen
     }
-    dbIndexes[id].modTime = time.Now().Unix()
+
+    indexes[id].updateTime = time.Now().Unix()
     if old.count > 0 {
-        link.push(self, old.index, old.blockId, old.count*DB_BASE_SIZE)
+        link.push(self, old.index, old.blockId, old.count*BaseDbSize)
     }
 
     return ret
 }
 
-func (self *Db) lockId(id int) {
-    self.mutexs[id%DB_MUTEX_MAX].Lock()
+func (self *DB) lockId(id int) {
+    self.mutexs[id%MaxMutexCount].Lock()
 }
 
-func (self *Db) unlockId(id int) {
-    self.mutexs[id%DB_MUTEX_MAX].Unlock()
+func (self *DB) unlockId(id int) {
+    self.mutexs[id%MaxMutexCount].Unlock()
 }
 
-func (self *Db) Get() {
+func (self *DB) Get() {
 
 }
 
-func (self *Db) Del() {
+func (self *DB) Del() {
 
 }

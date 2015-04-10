@@ -1,8 +1,8 @@
 package store
 
 import (
-    . "github.com/yqingp/lsearch/store"
-    "strconv"
+    // "strconv"
+    "os"
     "testing"
     "time"
 )
@@ -18,17 +18,17 @@ func TestDb(t *testing.T) {
     }
 
     start := time.Now().Nanosecond()
-    for i := 0; i < 10000; i++ {
-        ret, err := db.Set(-1, []byte("test"+strconv.Itoa(i)), []byte("test"))
-        if err != nil {
-            t.Error(err)
-        }
-        t.Log(ret)
-    }
+    // for i := 0; i < 10000; i++ {
+    //     ret, err := db.Set(-1, []byte("test"+strconv.Itoa(i)), []byte("test"))
+    //     if err != nil {
+    //         t.Error(err)
+    //     }
+    //     t.Log(ret)
+    // }
     end := time.Now().Nanosecond()
     t.Log("=============================")
     t.Log("10000 times insert spend:(ms)", (end-start)/1000/1000)
     db.Close()
-
+    os.RemoveAll("db")
     // t.Log(db.)
 }

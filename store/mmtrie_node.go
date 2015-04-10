@@ -1,4 +1,4 @@
-package util
+package store
 
 type MmtrieNode struct {
     key     uint8

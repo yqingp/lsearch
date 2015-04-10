@@ -1,28 +1,27 @@
 package store
 
 import (
-    "github.com/yqingp/lsearch/mmap"
     "os"
     "path/filepath"
     "unsafe"
 )
 
-type DbIndex struct {
-    blockSize int
-    blockId   int
-    ndata     int
-    index     int
-    modTime   int64
+type Index struct {
+    blockSize  int
+    blockId    int
+    dataLen    int
+    index      int
+    updateTime int64
 }
 
-func (self *Db) initIndex() {
+func (self *DB) initIndex() {
     indexFileName := filepath.Join(self.basedir, "db.dbx")
 
     f, err := os.OpenFile(indexFileName, os.O_CREATE|os.O_RDWR, 0664)
     if err != nil {
         self.logger.Fatal(err)
     }
-    self.indexIO.fd = int(f.Fd())
+
     self.indexIO.file = f
 
     fstat, err := os.Stat(indexFileName)
@@ -31,18 +30,18 @@ func (self *Db) initIndex() {
     }
 
     self.indexIO.end = fstat.Size()
-    self.indexIO.size = DB_DBX_MAX * SizeofDbIndex
+    self.indexIO.size = MaxIndexSize * SizeofIndex
 
     var errNo error
 
-    if self.indexIO.mmap, errNo = mmap.MmapFile(self.indexIO.fd, int(self.indexIO.size)); errNo != nil {
+    if self.indexIO.mmap, errNo = MmapFile(int(self.indexIO.file.Fd()), int(self.indexIO.size)); errNo != nil {
         self.logger.Fatal(err)
     }
 
-    self.indexes = (*[DB_DBX_MAX]DbIndex)(unsafe.Pointer(&self.indexIO.mmap[0]))[:DB_DBX_MAX]
+    self.indexes = (*[MaxIndexSize]Index)(unsafe.Pointer(&self.indexIO.mmap[0]))[:MaxIndexSize]
 
     if fstat.Size() == 0 {
-        self.indexIO.end = DB_DBX_BASE * SizeofDbIndex
+        self.indexIO.end = BaseIndexSize * SizeofIndex
 
         if err := os.Truncate(indexFileName, self.indexIO.end); err != nil {
             self.logger.Fatal(err)

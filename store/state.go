@@ -1,13 +1,12 @@
 package store
 
 import (
-    "github.com/yqingp/lsearch/mmap"
     "os"
     "path/filepath"
     "unsafe"
 )
 
-type DbState struct {
+type State struct {
     status         int
     mode           int
     lastId         int
@@ -17,14 +16,13 @@ type DbState struct {
     blockIncreMode int
 }
 
-func (self *Db) initState() {
+func (self *DB) initState() {
     stateFileName := filepath.Join(self.basedir, "db.state")
 
     f, err := os.OpenFile(stateFileName, os.O_CREATE|os.O_RDWR, 0664)
     if err != nil {
         self.logger.Fatal(err)
     }
-    self.stateIO.fd = int(f.Fd())
     self.stateIO.file = f
 
     fstat, err := os.Stat(stateFileName)
@@ -34,7 +32,7 @@ func (self *Db) initState() {
 
     self.stateIO.end = fstat.Size()
     if fstat.Size() == 0 {
-        self.stateIO.end = SizeOfDbState
+        self.stateIO.end = SizeOfState
         self.stateIO.size = self.stateIO.end
 
         if err := os.Truncate(stateFileName, self.stateIO.end); err != nil {
@@ -43,11 +41,11 @@ func (self *Db) initState() {
     }
 
     var errNo error
-    if self.stateIO.mmap, errNo = mmap.MmapFile(self.stateIO.fd, int(self.stateIO.end)); errNo != nil {
+    if self.stateIO.mmap, errNo = MmapFile(int(self.stateIO.file.Fd()), int(self.stateIO.end)); errNo != nil {
         self.logger.Fatal(err)
     }
 
-    self.state = (*DbState)(unsafe.Pointer(&self.stateIO.mmap[0]))
+    self.state = (*State)(unsafe.Pointer(&self.stateIO.mmap[0]))
     self.state.mode = 0
     if self.isMmap {
         self.state.mode = 1

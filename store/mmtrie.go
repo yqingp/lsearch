@@ -1,8 +1,7 @@
-package util
+package store
 
 import (
     "errors"
-    . "github.com/yqingp/lsearch/mmap"
     "os"
     "sync"
     "unsafe"
@@ -48,7 +47,7 @@ var (
     MmtrieNodeSizeOf  = int64(unsafe.Sizeof(MmtrieNode{}))
 )
 
-func Open(filename string) (*Mmtrie, error) {
+func OpenTrie(filename string) (*Mmtrie, error) {
     if filename == "" {
         return nil, errors.New("file name is blank")
     }

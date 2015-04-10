@@ -1,17 +1,15 @@
 package store
 
 import (
-    "github.com/yqingp/lsearch/mmap"
     "os"
     "path/filepath"
     "strconv"
     "sync"
 )
 
-type DbIO struct {
-    fd    int
+type IO struct {
     bits  int
-    mmap  mmap.Mmap
+    mmap  Mmap
     mutex *sync.Mutex
     old   int64
     end   int64
@@ -35,7 +33,7 @@ type DbIO struct {
 
 // }
 
-func (self *DbIO) close() {
+func (self *IO) close() {
     if self.mmap != nil {
         self.mmap.Unmap()
     }
@@ -44,12 +42,12 @@ func (self *DbIO) close() {
     }
 }
 
-func (self *DbIO) checkDbIOMmap(db *Db) {
-    if self.fd < 1 || self.file == nil {
+func (self *IO) checkIOMmap(db *DB) {
+    if self.file == nil {
         return
     }
     if self.mmap == nil {
-        m, err := mmap.MmapFile(self.fd, DB_MFILE_SIZE)
+        m, err := MmapFile(int(self.file.Fd()), MaxDbFileSize)
         if err != nil {
             db.logger.Fatal(err)
         }
@@ -57,9 +55,9 @@ func (self *DbIO) checkDbIOMmap(db *Db) {
     }
 }
 
-func (self *Db) initDbsIO() {
+func (self *DB) initDbsIO() {
     for i := 0; i <= self.state.lastId; i++ {
-        currentDbPath := filepath.Join(self.basedir, "base", strconv.Itoa(i/DB_DIR_FILES))
+        currentDbPath := filepath.Join(self.basedir, "base", strconv.Itoa(i/MaxDirFileCount))
         if err := os.MkdirAll(currentDbPath, 0755); err != nil {
             self.logger.Fatal(err)
         }
@@ -77,10 +75,9 @@ func (self *Db) initDbsIO() {
         }
 
         self.dbsIO[i].file = file
-        self.dbsIO[i].fd = int(file.Fd())
 
         if fstat.Size() == 0 {
-            self.dbsIO[i].size = DB_MFILE_MAX
+            self.dbsIO[i].size = MaxDbFileCount
 
             if err := file.Truncate(self.dbsIO[i].size); err != nil {
                 self.logger.Fatal(err)
@@ -90,25 +87,24 @@ func (self *Db) initDbsIO() {
         }
 
         if self.isMmap {
-            self.dbsIO[i].checkDbIOMmap(self)
-            // self.checkDbIOMmap(i)
+            self.dbsIO[i].checkIOMmap(self)
         }
     }
 
-    for i := 0; i < DB_MUTEX_MAX; i++ {
+    for i := 0; i < MaxMutexCount; i++ {
         self.mutexs[i] = &sync.Mutex{}
     }
 }
 
-func (db *Db) checkIndexIOWithId(id int) {
+func (db *DB) checkIndexIOWithId(id int) {
     if id > db.state.dbIdMax {
         db.state.dbIdMax = id
     }
 
-    if id < DB_DBX_MAX && int64(id)*SizeofDbIndex >= db.indexIO.end {
+    if id < MaxIndexSize && int64(id)*SizeofIndex >= db.indexIO.end {
         db.indexIO.old = db.indexIO.end
-        db.indexIO.end = int64(id)/int64(DB_DBX_BASE) + 1
-        db.indexIO.end += SizeofDbIndex * int64(DB_DBX_BASE)
+        db.indexIO.end = int64(id)/int64(BaseIndexSize) + 1
+        db.indexIO.end += SizeofIndex * int64(BaseIndexSize)
         if err := db.indexIO.file.Truncate(db.indexIO.end); err != nil {
             db.logger.Fatal(err)
         }

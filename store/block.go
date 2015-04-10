@@ -17,7 +17,7 @@ type BlockQueue struct {
 }
 
 func (self *DB) initBlockQueue() {
-    blockQueueFileName := filepath.Join(self.basedir, "db.blkq")
+    blockQueueFileName := filepath.Join(self.baseDir, BlockQueueFileName)
 
     f, err := os.OpenFile(blockQueueFileName, os.O_CREATE|os.O_RDWR, 0664)
     if err != nil {
@@ -81,7 +81,7 @@ func (self *BlockQueue) pop(db *DB, bcount int) (ret int) {
         index = links[x].index
     }
 
-    if links != nil && index >= 0 && links[x].count > 0 && index < MaxDbFileCount && db.dbsIO[index].file != nil {
+    if links != nil && index >= 0 && links[x].count > 0 && index < MaxDbFileCount && db.IOs[index].file != nil {
         self.count = bcount
         self.index = index
         self.blockId = links[x].blockId
@@ -93,8 +93,8 @@ func (self *BlockQueue) pop(db *DB, bcount int) (ret int) {
 
         if lcount > 0 {
 
-            if db.dbsIO[index].mmap != nil {
-                addr := &db.dbsIO[index].mmap[links[x].blockId*BaseDbSize]
+            if db.IOs[index].mmap != nil {
+                addr := &db.IOs[index].mmap[links[x].blockId*BaseDbSize]
                 plink := (*BlockQueue)(unsafe.Pointer(addr))
                 links[x].index = plink.index
                 links[x].blockId = plink.blockId
@@ -113,7 +113,7 @@ func (self *BlockQueue) pop(db *DB, bcount int) (ret int) {
         }
     } else {
         x = db.state.lastId
-        left = int(db.dbsIO[x].size) - db.state.lastOff
+        left = int(db.IOs[x].size) - db.state.lastOff
         if left < BaseDbSize*bcount {
             dbId = x
             blockId = db.state.lastOff / BaseDbSize
@@ -127,26 +127,26 @@ func (self *BlockQueue) pop(db *DB, bcount int) (ret int) {
                 db.logger.Fatal("pop block dbs error")
             }
 
-            currentDbPath := filepath.Join(db.basedir, "base", strconv.Itoa(x/MaxDirFileCount))
+            currentDbPath := filepath.Join(db.baseDir, DbFileDirName, strconv.Itoa(x/MaxDirFileCount))
             if err := os.MkdirAll(currentDbPath, 0755); err != nil {
                 db.logger.Fatal(err)
             }
-            currentDbFileName := filepath.Join(currentDbPath, strconv.Itoa(x)+".db")
+            currentDbFileName := filepath.Join(currentDbPath, strconv.Itoa(x)+DbFileSuffix)
             file, err := os.OpenFile(currentDbFileName, os.O_CREATE|os.O_RDWR, 0644)
             if err != nil {
                 db.logger.Fatal(err)
             }
 
-            db.dbsIO[x].file = file
+            db.IOs[x].file = file
 
             if err := file.Truncate(MaxDbFileSize); err != nil {
                 db.logger.Fatal(err)
             }
 
-            db.dbsIO[x].mutex = &sync.Mutex{}
-            db.dbsIO[x].end = MaxDbFileSize
-            db.dbsIO[x].size = MaxDbFileSize
-            db.dbsIO[x].checkIOMmap(db)
+            db.IOs[x].mutex = &sync.Mutex{}
+            db.IOs[x].end = MaxDbFileSize
+            db.IOs[x].size = MaxDbFileSize
+            db.IOs[x].initIOMmap(db)
             self.count = bcount
             self.index = x
             self.blockId = 0
@@ -178,8 +178,8 @@ func (self *BlockQueue) push(db *DB, index int, blockId int, blockSize int) int 
 
         if db.blockQueues != nil {
             if db.blockQueues[x].count > 0 {
-                if db.dbsIO[index].mmap != nil {
-                    addr := &db.dbsIO[index].mmap[blockId*BaseDbSize]
+                if db.IOs[index].mmap != nil {
+                    addr := &db.IOs[index].mmap[blockId*BaseDbSize]
                     link = (*BlockQueue)(unsafe.Pointer(addr))
                     link.index = db.blockQueues[x].index
                     link.blockId = db.blockQueues[x].blockId

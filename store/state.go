@@ -17,7 +17,7 @@ type State struct {
 }
 
 func (self *DB) initState() {
-    stateFileName := filepath.Join(self.basedir, "db.state")
+    stateFileName := filepath.Join(self.baseDir, StateFileName)
 
     f, err := os.OpenFile(stateFileName, os.O_CREATE|os.O_RDWR, 0664)
     if err != nil {

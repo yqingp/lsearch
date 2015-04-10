@@ -15,7 +15,7 @@ type Index struct {
 }
 
 func (self *DB) initIndex() {
-    indexFileName := filepath.Join(self.basedir, "db.dbx")
+    indexFileName := filepath.Join(self.baseDir, IndexFileName)
 
     f, err := os.OpenFile(indexFileName, os.O_CREATE|os.O_RDWR, 0664)
     if err != nil {

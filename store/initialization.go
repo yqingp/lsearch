@@ -1,7 +1,6 @@
 package store
 
 import (
-    "github.com/yqingp/lsearch/util"
     "log"
     "os"
     "path/filepath"
@@ -9,8 +8,8 @@ import (
 
 func (self *DB) initKmap() error {
     var err error
-    kmapfileName := filepath.Join(self.basedir, "db.kmap")
-    if self.kmap, err = util.Open(kmapfileName); err != nil {
+    keyMapTrieFilePath := filepath.Join(self.baseDir, KeyMapTrieFileName)
+    if self.keyMapTrie, err = OpenTrie(keyMapTrieFilePath); err != nil {
         return err
     }
 
@@ -18,9 +17,9 @@ func (self *DB) initKmap() error {
 }
 
 func (self *DB) initLogger() error {
-    loggerFileName := filepath.Join(self.basedir, "db.log")
+    loggerFilePath := filepath.Join(self.baseDir, DbLogFileName)
 
-    f, err := os.OpenFile(loggerFileName, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0755)
+    f, err := os.OpenFile(loggerFilePath, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0755)
 
     if err != nil {
         return err
@@ -32,7 +31,7 @@ func (self *DB) initLogger() error {
 }
 
 func (self *DB) initDir() error {
-    if err := os.MkdirAll(self.basedir, 0755); err != nil {
+    if err := os.MkdirAll(self.baseDir, 0755); err != nil {
         return err
     }
 

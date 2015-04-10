@@ -13,6 +13,14 @@ const (
     MaxMutexCount      = 65536
     MaxDbFileSize      = 256 * 1024 * 1024
     MaxDbFileCount     = 8129
+
+    BlockQueueFileName = "blockqueue"
+    IndexFileName      = "index"
+    DbFileDirName      = "base"
+    DbFileSuffix       = ".db"
+    KeyMapTrieFileName = "trie"
+    DbLogFileName      = "log"
+    StateFileName      = "state"
 )
 
 const (

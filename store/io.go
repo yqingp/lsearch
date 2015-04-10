@@ -17,22 +17,6 @@ type IO struct {
     file  *os.File
 }
 
-// func (self *Db) checkDbIOMmap(i int) {
-//     dbsio := self.dbsIO[i]
-
-//     if dbsio.fd < 1 || dbsio.file == nil {
-//         return
-//     }
-//     if dbsio.mmap == nil {
-//         m, err := mmap.MmapFile(dbsio.fd, int(dbsio.size))
-//         if err != nil {
-//             self.logger.Fatal(err)
-//         }
-//         dbsio.mmap = m
-//     }
-
-// }
-
 func (self *IO) close() {
     if self.mmap != nil {
         self.mmap.Unmap()
@@ -42,7 +26,7 @@ func (self *IO) close() {
     }
 }
 
-func (self *IO) checkIOMmap(db *DB) {
+func (self *IO) initIOMmap(db *DB) {
     if self.file == nil {
         return
     }
@@ -55,15 +39,15 @@ func (self *IO) checkIOMmap(db *DB) {
     }
 }
 
-func (self *DB) initDbsIO() {
+func (self *DB) initIOs() {
     for i := 0; i <= self.state.lastId; i++ {
-        currentDbPath := filepath.Join(self.basedir, "base", strconv.Itoa(i/MaxDirFileCount))
+        currentDbPath := filepath.Join(self.baseDir, DbFileDirName, strconv.Itoa(i/MaxDirFileCount))
         if err := os.MkdirAll(currentDbPath, 0755); err != nil {
             self.logger.Fatal(err)
         }
 
-        currentDbFileName := filepath.Join(currentDbPath, strconv.Itoa(i)+".db")
-        self.dbsIO[i].mutex = &sync.Mutex{}
+        currentDbFileName := filepath.Join(currentDbPath, strconv.Itoa(i)+DbFileSuffix)
+        self.IOs[i].mutex = &sync.Mutex{}
         file, err := os.OpenFile(currentDbFileName, os.O_CREATE|os.O_RDWR, 0644)
         if err != nil {
             self.logger.Fatal(err)
@@ -74,20 +58,20 @@ func (self *DB) initDbsIO() {
             self.logger.Fatal(err)
         }
 
-        self.dbsIO[i].file = file
+        self.IOs[i].file = file
 
         if fstat.Size() == 0 {
-            self.dbsIO[i].size = MaxDbFileCount
+            self.IOs[i].size = MaxDbFileCount
 
-            if err := file.Truncate(self.dbsIO[i].size); err != nil {
+            if err := file.Truncate(self.IOs[i].size); err != nil {
                 self.logger.Fatal(err)
             }
         } else {
-            self.dbsIO[i].size = fstat.Size()
+            self.IOs[i].size = fstat.Size()
         }
 
         if self.isMmap {
-            self.dbsIO[i].checkIOMmap(self)
+            self.IOs[i].initIOMmap(self)
         }
     }
 

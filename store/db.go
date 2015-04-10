@@ -2,7 +2,6 @@ package store
 
 import (
     "errors"
-    "github.com/yqingp/lsearch/util"
     "log"
     "os"
     "sync"
@@ -14,24 +13,23 @@ type DB struct {
     mutex           *sync.Mutex
     blockQueueMutex *sync.Mutex
     indexMutex      *sync.Mutex
-    blockMutex      *sync.Mutex
+    mutexs          [MaxMutexCount]*sync.Mutex
     state           *State
     stateIO         IO
     blockQueueIO    IO
     indexIO         IO
     blockQueues     []BlockQueue
     indexes         []Index
-    dbsIO           [MaxDbFileCount]IO
-    basedir         string
-    kmap            *util.Mmtrie
+    IOs             [MaxDbFileCount]IO
+    baseDir         string
+    keyMapTrie      *Mmtrie
     loggerFile      *os.File
     logger          *log.Logger
     isMmap          bool
-    mutexs          [MaxMutexCount]*sync.Mutex
 }
 
-func Open(basedir string, isMmap bool) (*DB, error) {
-    if basedir == "" {
+func Open(baseDir string, isMmap bool) (*DB, error) {
+    if baseDir == "" {
         return nil, errors.New("basedir is blank")
     }
 
@@ -39,9 +37,8 @@ func Open(basedir string, isMmap bool) (*DB, error) {
 
     db.blockQueueMutex = &sync.Mutex{}
     db.indexMutex = &sync.Mutex{}
-    db.blockMutex = &sync.Mutex{}
     db.mutex = &sync.Mutex{}
-    db.basedir = basedir
+    db.baseDir = baseDir
     db.isMmap = isMmap
 
     if err := db.initDir(); err != nil {
@@ -59,23 +56,27 @@ func Open(basedir string, isMmap bool) (*DB, error) {
     db.initState()
     db.initBlockQueue()
     db.initIndex()
-    db.initDbsIO()
+    db.initIOs()
 
     return db, nil
+}
+
+func (d *DB) init() {
+
 }
 
 func (self *DB) Close() {
     if self.loggerFile != nil {
         self.loggerFile.Close()
     }
-    if self.kmap != nil {
-        self.kmap.Close()
+    if self.keyMapTrie != nil {
+        self.keyMapTrie.Close()
     }
 
     self.stateIO.close()
     self.indexIO.close()
     self.blockQueueIO.close()
-    for _, v := range self.dbsIO {
+    for _, v := range self.IOs {
         v.close()
     }
 }
@@ -89,7 +90,7 @@ func (self *DB) Set(id int, key []byte, value []byte) (int, error) {
     var err error
 
     if id < 1 {
-        id, err = self.kmap.Set(key)
+        id, err = self.keyMapTrie.Set(key)
         if err != nil {
             return -1, err
         }
@@ -147,11 +148,11 @@ func (self *DB) internalSet(id int, value []byte) int {
         }
     }
 
-    if indexes[id].blockSize >= valueLen && indexes[id].index >= 0 && self.dbsIO[index].file != nil {
+    if indexes[id].blockSize >= valueLen && indexes[id].index >= 0 && self.IOs[index].file != nil {
         index = indexes[id].index
-        if self.isMmap && indexes[id].blockId >= 0 && self.dbsIO[index].mmap != nil {
+        if self.isMmap && indexes[id].blockId >= 0 && self.IOs[index].mmap != nil {
             for k, v := range value {
-                self.dbsIO[index].mmap[indexes[id].blockId*BaseDbSize+k] = v
+                self.IOs[index].mmap[indexes[id].blockId*BaseDbSize+k] = v
             }
 
             indexes[id].dataLen = valueLen

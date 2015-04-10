@@ -15,12 +15,12 @@ const (
     MaxDbFileSize      = 256 * 1024 * 1024
     MaxDbFileCount     = 8129
 
-    BlockQueueFileName = "blockqueue"
+    BlockQueueFileName = "blocks"
     IndexFileName      = "index"
     DbFileDirName      = "base"
     DbFileSuffix       = ".db"
     KeyMapTrieFileName = "trie"
-    DbLogFileName      = "log"
+    DbLogFileName      = "db.log"
     StateFileName      = "state"
 )
 

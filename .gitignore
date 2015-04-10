@@ -1,8 +1,11 @@
 *.txt
 *.prof
-*.kmap
 *.log
-*.blkq
 *.db
-*.dbx
 *.state
+log
+blocks
+index
+base
+trie
+state

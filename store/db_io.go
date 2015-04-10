@@ -35,6 +35,15 @@ type DbIO struct {
 
 // }
 
+func (self *DbIO) close() {
+    if self.mmap != nil {
+        self.mmap.Unmap()
+    }
+    if self.file != nil {
+        self.file.Close()
+    }
+}
+
 func (self *DbIO) checkDbIOMmap(db *Db) {
     if self.fd < 1 || self.file == nil {
         return

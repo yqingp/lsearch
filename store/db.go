@@ -68,6 +68,22 @@ func Open(basedir string, isMmap bool) (*Db, error) {
     return db, nil
 }
 
+func (self *Db) Close() {
+    if self.loggerFile != nil {
+        self.loggerFile.Close()
+    }
+    if self.kmap != nil {
+        self.kmap.Close()
+    }
+
+    self.stateIO.close()
+    self.indexIO.close()
+    self.blockQueueIO.close()
+    for _, v := range self.dbsIO {
+        v.close()
+    }
+}
+
 // if id is < 1  generate auto increment id
 func (self *Db) Set(id int, key []byte, value []byte) (int, error) {
     if key == nil || value == nil || len(value) == 0 {
@@ -79,7 +95,6 @@ func (self *Db) Set(id int, key []byte, value []byte) (int, error) {
     if id < 1 {
         id, err = self.kmap.Set(key)
         if err != nil {
-            self.logger.Println(err)
             return -1, err
         }
     }
@@ -93,7 +108,6 @@ func (self *Db) Set(id int, key []byte, value []byte) (int, error) {
 }
 
 func (self *Db) internalSet(id int, value []byte) int {
-    self.logger.Println(string(value))
     ret := -1
     dbIndexes := self.indexes
     if self.status != 0 || dbIndexes == nil {
@@ -110,13 +124,11 @@ func (self *Db) internalSet(id int, value []byte) int {
     self.checkIndexIOWithId(id)
     self.indexMutex.Unlock()
 
-    self.logger.Println(id)
     self.lockId(id)
     defer self.unlockId(id)
     link, old := &DbBlockQueue{}, &DbBlockQueue{}
 
     if dbIndexes[id].blockSize < valueLen {
-        self.logger.Println(dbIndexes[id].blockSize)
         if dbIndexes[id].blockSize > 0 {
             old.index = dbIndexes[id].index
             old.blockId = dbIndexes[id].blockId
@@ -127,9 +139,7 @@ func (self *Db) internalSet(id int, value []byte) int {
         }
 
         blocksCountNum = blocksCount(valueLen)
-        self.logger.Println("blocksCountNum", blocksCountNum)
         if link.pop(self, blocksCountNum) == 0 {
-            self.logger.Println("pop val", 0)
             dbIndexes[id].index = link.index
             dbIndexes[id].blockId = link.blockId
             dbIndexes[id].blockSize = blocksCountNum * DB_BASE_SIZE
@@ -141,15 +151,10 @@ func (self *Db) internalSet(id int, value []byte) int {
         }
     }
 
-    self.logger.Println(dbIndexes[id].blockSize)
-    self.logger.Println(index)
-    self.logger.Println(self.dbsIO[index].fd)
     if dbIndexes[id].blockSize >= valueLen && dbIndexes[id].index >= 0 && self.dbsIO[index].file != nil {
-        // self.logger.Println(1)
         index = dbIndexes[id].index
         if self.isMmap && dbIndexes[id].blockId >= 0 && self.dbsIO[index].mmap != nil {
             for k, v := range value {
-                self.logger.Println(k, v)
                 self.dbsIO[index].mmap[dbIndexes[id].blockId*DB_BASE_SIZE+k] = v
             }
 
@@ -171,7 +176,6 @@ func (self *Db) internalSet(id int, value []byte) int {
         self.state.dataLenMax = dbIndexes[id].ndata
     }
     dbIndexes[id].modTime = time.Now().Unix()
-    // self.unlockId(id)
     if old.count > 0 {
         link.push(self, old.index, old.blockId, old.count*DB_BASE_SIZE)
     }

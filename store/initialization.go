@@ -20,13 +20,14 @@ func (self *Db) initKmap() error {
 func (self *Db) initLogger() error {
     loggerFileName := filepath.Join(self.basedir, "db.log")
 
-    _, err := os.OpenFile(loggerFileName, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0755)
+    f, err := os.OpenFile(loggerFileName, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0755)
 
     if err != nil {
         return err
     }
+    self.logger = log.New(f, "[LSearch][DB]:", log.Llongfile|log.Ldate|log.Ltime)
 
-    self.logger = log.New(os.Stdout, "[LSearch][DB]:", log.Llongfile|log.Ldate|log.Ltime)
+    // self.logger = log.New(os.Stdout, "[LSearch][DB]:", log.Llongfile|log.Ldate|log.Ltime)
     return nil
 }
 

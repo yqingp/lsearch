@@ -94,8 +94,6 @@ func (self *DbBlockQueue) pop(db *Db, bcount int) (ret int) {
         index = links[x].index
     }
 
-    db.logger.Println(index)
-
     if links != nil && index >= 0 && links[x].count > 0 && index < DB_MFILE_MAX && db.dbsIO[index].file != nil {
         self.count = bcount
         self.index = index

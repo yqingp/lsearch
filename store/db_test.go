@@ -17,6 +17,7 @@ func TestDb(t *testing.T) {
         t.Error("db init fail")
     }
 
+    start := time.Now().Nanosecond()
     for i := 0; i < 10000; i++ {
         ret, err := db.Set(-1, []byte("test"+strconv.Itoa(i)), []byte("test"))
         if err != nil {
@@ -24,7 +25,10 @@ func TestDb(t *testing.T) {
         }
         t.Log(ret)
     }
-    time.Sleep(1000000000)
+    end := time.Now().Nanosecond()
+    t.Log("=============================")
+    t.Log("10000 times insert spend:(ms)", (end-start)/1000/1000)
+    db.Close()
 
     // t.Log(db.)
 }

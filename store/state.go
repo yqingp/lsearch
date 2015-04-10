@@ -16,38 +16,41 @@ type State struct {
     blockIncreMode int
 }
 
-func (self *DB) initState() {
-    stateFileName := filepath.Join(self.baseDir, StateFileName)
+func (d *DB) initState() {
+    stateFilePath := filepath.Join(d.baseDir, StateFileName)
 
-    f, err := os.OpenFile(stateFileName, os.O_CREATE|os.O_RDWR, 0664)
+    f, err := os.OpenFile(stateFilePath, os.O_CREATE|os.O_RDWR, 0664)
     if err != nil {
-        self.logger.Fatal(err)
+        Logger.Fatal(err)
     }
-    self.stateIO.file = f
+    d.stateIO.file = f
 
-    fstat, err := os.Stat(stateFileName)
+    fstat, err := os.Stat(stateFilePath)
     if err != nil {
-        self.logger.Fatal(err)
+        Logger.Fatal(err)
     }
 
-    self.stateIO.end = fstat.Size()
+    d.stateIO.end = fstat.Size()
     if fstat.Size() == 0 {
-        self.stateIO.end = SizeOfState
-        self.stateIO.size = self.stateIO.end
+        d.stateIO.end = SizeOfState
+        d.stateIO.size = d.stateIO.end
 
-        if err := os.Truncate(stateFileName, self.stateIO.end); err != nil {
-            self.logger.Fatal(err)
+        if err := os.Truncate(stateFilePath, d.stateIO.end); err != nil {
+            Logger.Fatal(err)
         }
     }
 
     var errNo error
-    if self.stateIO.mmap, errNo = MmapFile(int(self.stateIO.file.Fd()), int(self.stateIO.end)); errNo != nil {
-        self.logger.Fatal(err)
+
+    fd := int(d.stateIO.file.Fd())
+
+    if d.stateIO.mmap, errNo = MmapFile(fd, int(d.stateIO.end)); errNo != nil {
+        Logger.Fatal(err)
     }
 
-    self.state = (*State)(unsafe.Pointer(&self.stateIO.mmap[0]))
-    self.state.mode = 0
-    if self.isMmap {
-        self.state.mode = 1
+    d.state = (*State)(unsafe.Pointer(&d.stateIO.mmap[0]))
+    d.state.mode = 0
+    if d.isMmap {
+        d.state.mode = 1
     }
 }

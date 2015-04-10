@@ -63,24 +63,24 @@ func (d *DB) init() {
 
 }
 
-func (self *DB) Close() {
-    if self.loggerFile != nil {
-        self.loggerFile.Close()
+func (d *DB) Close() {
+    if d.loggerFile != nil {
+        d.loggerFile.Close()
     }
-    if self.keyMapTrie != nil {
-        self.keyMapTrie.Close()
+    if d.keyMapTrie != nil {
+        d.keyMapTrie.Close()
     }
 
-    self.stateIO.close()
-    self.indexIO.close()
-    self.blockQueueIO.close()
-    for _, v := range self.IOs {
+    d.stateIO.close()
+    d.indexIO.close()
+    d.blockQueueIO.close()
+    for _, v := range d.IOs {
         v.close()
     }
 }
 
 // if id is < 1  generate auto increment id
-func (self *DB) Set(id int, key []byte, value []byte) (int, error) {
+func (d *DB) Set(id int, key []byte, value []byte) (int, error) {
     if key == nil || value == nil || len(value) == 0 {
         return -1, errors.New("key or value is blank")
     }
@@ -88,39 +88,38 @@ func (self *DB) Set(id int, key []byte, value []byte) (int, error) {
     var err error
 
     if id < 1 {
-        id, err = self.keyMapTrie.Set(key)
+        id, err = d.keyMapTrie.Set(key)
         if err != nil {
             return -1, err
         }
     }
 
-    ret := self.internalSet(id, value)
+    ret := d.internalSet(id, value)
     if ret == -1 {
-        self.logger.Fatal("set error")
+        Logger.Fatal("set error")
     }
 
     return id, nil
 }
 
-func (self *DB) internalSet(id int, value []byte) int {
+func (d *DB) internalSet(id int, value []byte) int {
     ret := -1
-    indexes := self.indexes
-    if self.status != 0 || indexes == nil {
+    indexes := d.indexes
+    if d.status != 0 || indexes == nil {
         return ret
     }
 
     valueLen := len(value)
 
-    blocksCountNum := 0
+    blocksCountNum, index := 0, 0
 
-    index := 0
-    _ = blocksCountNum
-    self.indexMutex.Lock()
-    self.checkIndexIOWithId(id)
-    self.indexMutex.Unlock()
+    d.indexMutex.Lock()
+    d.checkIndexIOWithId(id)
+    d.indexMutex.Unlock()
 
-    self.lockId(id)
-    defer self.unlockId(id)
+    d.lockId(id)
+    defer d.unlockId(id)
+
     oldBlockQueue := &BlockQueue{}
     var newBlockQueue *BlockQueue
 
@@ -135,33 +134,35 @@ func (self *DB) internalSet(id int, value []byte) int {
         }
 
         blocksCountNum = blocksCount(valueLen)
-        newBlockQueue = self.popBlockQueue(blocksCountNum)
+        newBlockQueue = d.popBlockQueue(blocksCountNum)
         if newBlockQueue != nil {
             indexes[id].index = newBlockQueue.index
             indexes[id].blockId = newBlockQueue.blockId
             indexes[id].blockSize = blocksCountNum * BaseDbSize
             if valueLen > indexes[id].blockSize {
-                self.logger.Fatal("Invalid  block")
+                Logger.Fatal("Invalid  block")
             }
         } else {
-            self.logger.Fatal("pop block error")
+            Logger.Fatal("pop block error")
         }
     }
 
-    if indexes[id].blockSize >= valueLen && indexes[id].index >= 0 && self.IOs[index].file != nil {
+    if indexes[id].blockSize >= valueLen && indexes[id].index >= 0 &&
+        d.IOs[index].file != nil {
+
         index = indexes[id].index
-        if self.isMmap && indexes[id].blockId >= 0 && self.IOs[index].mmap != nil {
+        if d.isMmap && indexes[id].blockId >= 0 && d.IOs[index].mmap != nil {
             for k, v := range value {
-                self.IOs[index].mmap[indexes[id].blockId*BaseDbSize+k] = v
+                d.IOs[index].mmap[indexes[id].blockId*BaseDbSize+k] = v
             }
 
             indexes[id].dataLen = valueLen
             ret = id
         } else {
-            writeCount, err := self.indexIO.file.WriteAt(value, int64(indexes[id].blockId*BaseDbSize))
-            if err != nil || writeCount != valueLen {
+            writeSize, err := d.indexIO.file.WriteAt(value, int64(indexes[id].blockId*BaseDbSize))
+            if err != nil || writeSize != valueLen {
                 indexes[id].dataLen = 0
-                self.logger.Fatal("write index error")
+                Logger.Fatal("write index error")
             }
 
             indexes[id].dataLen = valueLen
@@ -169,30 +170,30 @@ func (self *DB) internalSet(id int, value []byte) int {
         }
     }
 
-    if indexes[id].dataLen > self.state.dataLenMax {
-        self.state.dataLenMax = indexes[id].dataLen
+    if indexes[id].dataLen > d.state.dataLenMax {
+        d.state.dataLenMax = indexes[id].dataLen
     }
 
     indexes[id].updateTime = time.Now().Unix()
     if oldBlockQueue.count > 0 {
-        newBlockQueue.push(self, oldBlockQueue.index, oldBlockQueue.blockId, oldBlockQueue.count*BaseDbSize)
+        d.pushBlockQueue(oldBlockQueue.index, oldBlockQueue.blockId, oldBlockQueue.count*BaseDbSize)
     }
 
     return ret
 }
 
-func (self *DB) lockId(id int) {
-    self.mutexs[id%MaxMutexCount].Lock()
+func (d *DB) lockId(id int) {
+    d.mutexs[id%MaxMutexCount].Lock()
 }
 
-func (self *DB) unlockId(id int) {
-    self.mutexs[id%MaxMutexCount].Unlock()
+func (d *DB) unlockId(id int) {
+    d.mutexs[id%MaxMutexCount].Unlock()
 }
 
-func (self *DB) Get() {
+func (d *DB) Get() {
 
 }
 
-func (self *DB) Del() {
+func (d *DB) Del() {
 
 }

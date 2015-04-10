@@ -17,80 +17,83 @@ type IO struct {
     file  *os.File
 }
 
-func (self *IO) close() {
-    if self.mmap != nil {
-        self.mmap.Unmap()
+func (i *IO) close() {
+    if i.mmap != nil {
+        i.mmap.Unmap()
     }
-    if self.file != nil {
-        self.file.Close()
+    if i.file != nil {
+        i.file.Close()
     }
 }
 
-func (self *IO) initIOMmap(db *DB) {
-    if self.file == nil {
+func (i *IO) initIOMmap() {
+    if i.file == nil {
         return
     }
-    if self.mmap == nil {
-        m, err := MmapFile(int(self.file.Fd()), MaxDbFileSize)
+    if i.mmap == nil {
+        m, err := MmapFile(int(i.file.Fd()), MaxDbFileSize)
         if err != nil {
-            db.logger.Fatal(err)
+            Logger.Fatal(err)
         }
-        self.mmap = m
+        i.mmap = m
     }
 }
 
-func (self *DB) initIOs() {
-    for i := 0; i <= self.state.lastId; i++ {
-        currentDbPath := filepath.Join(self.baseDir, DbFileDirName, strconv.Itoa(i/MaxDirFileCount))
+func (d *DB) initIOs() {
+    for i := 0; i <= d.state.lastId; i++ {
+        dbNum := strconv.Itoa(i / MaxDirFileCount)
+        currentDbPath := filepath.Join(d.baseDir, DbFileDirName, dbNum)
         if err := os.MkdirAll(currentDbPath, 0755); err != nil {
-            self.logger.Fatal(err)
+            Logger.Fatal(err)
         }
 
-        currentDbFileName := filepath.Join(currentDbPath, strconv.Itoa(i)+DbFileSuffix)
-        self.IOs[i].mutex = &sync.Mutex{}
-        file, err := os.OpenFile(currentDbFileName, os.O_CREATE|os.O_RDWR, 0644)
+        dbFileName := strconv.Itoa(i) + DbFileSuffix
+        currentDbFilePath := filepath.Join(currentDbPath, dbFileName)
+
+        d.IOs[i].mutex = &sync.Mutex{}
+        file, err := os.OpenFile(currentDbFilePath, os.O_CREATE|os.O_RDWR, 0644)
         if err != nil {
-            self.logger.Fatal(err)
+            Logger.Fatal(err)
         }
 
         fstat, err := file.Stat()
         if err != nil {
-            self.logger.Fatal(err)
+            Logger.Fatal(err)
         }
 
-        self.IOs[i].file = file
+        d.IOs[i].file = file
 
         if fstat.Size() == 0 {
-            self.IOs[i].size = MaxDbFileCount
+            d.IOs[i].size = MaxDbFileCount
 
-            if err := file.Truncate(self.IOs[i].size); err != nil {
-                self.logger.Fatal(err)
+            if err := file.Truncate(d.IOs[i].size); err != nil {
+                Logger.Fatal(err)
             }
         } else {
-            self.IOs[i].size = fstat.Size()
+            d.IOs[i].size = fstat.Size()
         }
 
-        if self.isMmap {
-            self.IOs[i].initIOMmap(self)
+        if d.isMmap {
+            d.IOs[i].initIOMmap()
         }
     }
 
     for i := 0; i < MaxMutexCount; i++ {
-        self.mutexs[i] = &sync.Mutex{}
+        d.mutexs[i] = &sync.Mutex{}
     }
 }
 
-func (db *DB) checkIndexIOWithId(id int) {
-    if id > db.state.dbIdMax {
-        db.state.dbIdMax = id
+func (d *DB) checkIndexIOWithId(id int) {
+    if id > d.state.dbIdMax {
+        d.state.dbIdMax = id
     }
 
-    if id < MaxIndexSize && int64(id)*SizeofIndex >= db.indexIO.end {
-        db.indexIO.old = db.indexIO.end
-        db.indexIO.end = int64(id)/int64(BaseIndexSize) + 1
-        db.indexIO.end += SizeofIndex * int64(BaseIndexSize)
-        if err := db.indexIO.file.Truncate(db.indexIO.end); err != nil {
-            db.logger.Fatal(err)
+    if id < MaxIndexSize && int64(id)*SizeofIndex >= d.indexIO.end {
+        d.indexIO.old = d.indexIO.end
+        d.indexIO.end = int64(id)/int64(BaseIndexSize) + 1
+        d.indexIO.end += SizeofIndex * int64(BaseIndexSize)
+        if err := d.indexIO.file.Truncate(d.indexIO.end); err != nil {
+            Logger.Fatal(err)
         }
     }
 }

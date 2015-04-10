@@ -14,39 +14,40 @@ type Index struct {
     updateTime int64
 }
 
-func (self *DB) initIndex() {
-    indexFileName := filepath.Join(self.baseDir, IndexFileName)
+func (d *DB) initIndex() {
+    indexFilePath := filepath.Join(d.baseDir, IndexFileName)
 
-    f, err := os.OpenFile(indexFileName, os.O_CREATE|os.O_RDWR, 0664)
+    f, err := os.OpenFile(indexFilePath, os.O_CREATE|os.O_RDWR, 0664)
     if err != nil {
-        self.logger.Fatal(err)
+        Logger.Fatal(err)
+    }
+    d.indexIO.file = f
+
+    fstat, err := os.Stat(indexFilePath)
+    if err != nil {
+        Logger.Fatal(err)
     }
 
-    self.indexIO.file = f
-
-    fstat, err := os.Stat(indexFileName)
-    if err != nil {
-        self.logger.Fatal(err)
-    }
-
-    self.indexIO.end = fstat.Size()
-    self.indexIO.size = MaxIndexSize * SizeofIndex
+    d.indexIO.end = fstat.Size()
+    d.indexIO.size = MaxIndexSize * SizeofIndex
 
     var errNo error
 
-    if self.indexIO.mmap, errNo = MmapFile(int(self.indexIO.file.Fd()), int(self.indexIO.size)); errNo != nil {
-        self.logger.Fatal(err)
+    fd := int(d.indexIO.file.Fd())
+
+    if d.indexIO.mmap, errNo = MmapFile(fd, int(d.indexIO.size)); errNo != nil {
+        Logger.Fatal(err)
     }
 
-    self.indexes = (*[MaxIndexSize]Index)(unsafe.Pointer(&self.indexIO.mmap[0]))[:MaxIndexSize]
+    d.indexes = (*[MaxIndexSize]Index)(unsafe.Pointer(&d.indexIO.mmap[0]))[:MaxIndexSize]
 
     if fstat.Size() == 0 {
-        self.indexIO.end = BaseIndexSize * SizeofIndex
+        d.indexIO.end = BaseIndexSize * SizeofIndex
 
-        if err := os.Truncate(indexFileName, self.indexIO.end); err != nil {
-            self.logger.Fatal(err)
+        if err := os.Truncate(indexFilePath, d.indexIO.end); err != nil {
+            Logger.Fatal(err)
         }
     }
 
-    self.indexIO.old = self.indexIO.end
+    d.indexIO.old = d.indexIO.end
 }

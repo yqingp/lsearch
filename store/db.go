@@ -2,7 +2,6 @@ package store
 
 import (
     "errors"
-    "log"
     "os"
     "sync"
     "time"
@@ -24,7 +23,6 @@ type DB struct {
     baseDir         string
     keyMapTrie      *Mmtrie
     loggerFile      *os.File
-    logger          *log.Logger
     isMmap          bool
 }
 
@@ -123,22 +121,24 @@ func (self *DB) internalSet(id int, value []byte) int {
 
     self.lockId(id)
     defer self.unlockId(id)
-    link, old := &BlockQueue{}, &BlockQueue{}
+    oldBlockQueue := &BlockQueue{}
+    var newBlockQueue *BlockQueue
 
     if indexes[id].blockSize < valueLen {
         if indexes[id].blockSize > 0 {
-            old.index = indexes[id].index
-            old.blockId = indexes[id].blockId
-            old.count = blocksCount(indexes[id].blockSize)
+            oldBlockQueue.index = indexes[id].index
+            oldBlockQueue.blockId = indexes[id].blockId
+            oldBlockQueue.count = blocksCount(indexes[id].blockSize)
             indexes[id].blockSize = 0
             indexes[id].blockId = 0
             indexes[id].dataLen = 0
         }
 
         blocksCountNum = blocksCount(valueLen)
-        if link.pop(self, blocksCountNum) == 0 {
-            indexes[id].index = link.index
-            indexes[id].blockId = link.blockId
+        newBlockQueue = self.popBlockQueue(blocksCountNum)
+        if newBlockQueue != nil {
+            indexes[id].index = newBlockQueue.index
+            indexes[id].blockId = newBlockQueue.blockId
             indexes[id].blockSize = blocksCountNum * BaseDbSize
             if valueLen > indexes[id].blockSize {
                 self.logger.Fatal("Invalid  block")
@@ -174,8 +174,8 @@ func (self *DB) internalSet(id int, value []byte) int {
     }
 
     indexes[id].updateTime = time.Now().Unix()
-    if old.count > 0 {
-        link.push(self, old.index, old.blockId, old.count*BaseDbSize)
+    if oldBlockQueue.count > 0 {
+        newBlockQueue.push(self, oldBlockQueue.index, oldBlockQueue.blockId, oldBlockQueue.count*BaseDbSize)
     }
 
     return ret

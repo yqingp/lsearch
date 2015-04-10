@@ -1,6 +1,7 @@
 package store
 
 import (
+    "log"
     "unsafe"
 )
 
@@ -28,3 +29,5 @@ const (
     SizeOfBlockQueue = int64(unsafe.Sizeof(BlockQueue{}))
     SizeofIndex      = int64(unsafe.Sizeof(Index{}))
 )
+
+var Logger *log.Logger

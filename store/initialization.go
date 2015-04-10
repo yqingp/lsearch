@@ -24,9 +24,10 @@ func (self *DB) initLogger() error {
     if err != nil {
         return err
     }
-    self.logger = log.New(f, "[LSearch][DB]:", log.Llongfile|log.Ldate|log.Ltime)
 
-    // self.logger = log.New(os.Stdout, "[LSearch][DB]:", log.Llongfile|log.Ldate|log.Ltime)
+    self.loggerFile = f
+
+    Logger = log.New(f, "[LSearch][DB]:", log.Llongfile|log.Ldate|log.Ltime)
     return nil
 }
 

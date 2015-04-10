@@ -40,7 +40,7 @@ func (self *DbIO) checkDbIOMmap(db *Db) {
         return
     }
     if self.mmap == nil {
-        m, err := mmap.MmapFile(self.fd, int(self.size))
+        m, err := mmap.MmapFile(self.fd, DB_MFILE_SIZE)
         if err != nil {
             db.logger.Fatal(err)
         }
@@ -49,7 +49,7 @@ func (self *DbIO) checkDbIOMmap(db *Db) {
 }
 
 func (self *Db) initDbsIO() {
-    for i := 0; i < self.state.lastId; i++ {
+    for i := 0; i <= self.state.lastId; i++ {
         currentDbPath := filepath.Join(self.basedir, "base", strconv.Itoa(i/DB_DIR_FILES))
         if err := os.MkdirAll(currentDbPath, 0755); err != nil {
             self.logger.Fatal(err)

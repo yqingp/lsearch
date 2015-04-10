@@ -28,7 +28,7 @@ type DbBlock struct {
     total    int
 }
 
-func (self *Db) initFreeBlockQueue() {
+func (self *Db) initBlockQueue() {
     blockQueueFileName := filepath.Join(self.basedir, "db.blkq")
 
     f, err := os.OpenFile(blockQueueFileName, os.O_CREATE|os.O_RDWR, 0664)
@@ -78,8 +78,6 @@ func (self *DbBlockQueue) pop(db *Db, bcount int) (ret int) {
     }
 
     db.blockQueueMutex.Lock()
-    defer db.blockQueueMutex.Unlock()
-
     links := db.blockQueues
     var plink *DbBlockQueue
     _ = plink
@@ -88,13 +86,15 @@ func (self *DbBlockQueue) pop(db *Db, bcount int) (ret int) {
 
     var buf []byte
     var buf1 bytes.Buffer
-    x, index, left, dbId, blockId, blockSize := bcount, 0, 0, -1, -1, 0
+    x, index, left, dbId, blockId, blockSize := bcount, -1, 0, -1, -1, 0
     _ = dbId
     _ = blockId
     _ = blockSize
     if links != nil {
         index = links[x].index
     }
+
+    db.logger.Println(index)
 
     if links != nil && index >= 0 && links[x].count > 0 && index < DB_MFILE_MAX && db.dbsIO[index].file != nil {
         self.count = bcount
@@ -137,6 +137,7 @@ func (self *DbBlockQueue) pop(db *Db, bcount int) (ret int) {
             db.state.lastId++
             x = db.state.lastId
 
+            db.logger.Println(x)
             if x >= DB_MFILE_MAX {
                 db.logger.Fatal("pop block dbs error")
             }
@@ -152,6 +153,7 @@ func (self *DbBlockQueue) pop(db *Db, bcount int) (ret int) {
             }
 
             db.dbsIO[x].fd = int(file.Fd())
+            db.logger.Println(x, db.dbsIO[x].fd)
             db.dbsIO[x].file = file
 
             if err := file.Truncate(DB_MFILE_SIZE); err != nil {
@@ -174,7 +176,7 @@ func (self *DbBlockQueue) pop(db *Db, bcount int) (ret int) {
             ret = 0
         }
     }
-
+    db.blockQueueMutex.Unlock()
     if blockId >= 0 {
         self.push(db, dbId, blockId, blockSize)
     }
@@ -187,9 +189,9 @@ func (self *DbBlockQueue) push(db *Db, index int, blockId int, blockSize int) in
     x = blocksCount(blockSize)
     var buf bytes.Buffer
     var link *DbBlockQueue
+    db.blockQueueMutex.Lock()
+    defer db.blockQueueMutex.Unlock()
     if db != nil && blockId >= 0 && x > 0 && db.status == 0 && x < DB_LNK_MAX && index >= 0 && index < DB_MFILE_MAX {
-        db.blockQueueMutex.Lock()
-        defer db.blockQueueMutex.Unlock()
 
         if db.blockQueues != nil {
             if db.blockQueues[x].count > 0 {

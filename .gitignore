@@ -2,3 +2,6 @@
 *.prof
 *.kmap
 *.log
+*.blkq
+*.db
+*.dbx

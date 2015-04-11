@@ -7,6 +7,25 @@ import (
     "time"
 )
 
+func TestGet(t *testing.T) {
+    db, err := Open("./db", true)
+    if err != nil {
+        t.Error(err)
+    }
+
+    if db == nil {
+        t.Error("db init fail")
+    }
+
+    // start := time.Now()
+    ret, _ := db.Get([]byte("test0"))
+    t.Log(string(ret))
+    ret, _ = db.GetInternalId(1)
+    t.Log(string(ret))
+    db.Close()
+    // end := time.Now()
+}
+
 func TestDb(t *testing.T) {
     db, err := Open("./db", true)
     if err != nil {

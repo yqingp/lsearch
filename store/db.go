@@ -190,8 +190,52 @@ func (d *DB) unlockId(id int) {
     d.mutexs[id%MaxMutexCount].Unlock()
 }
 
-func (d *DB) Get() {
+func (d *DB) Get(key []byte) (value []byte, ret int) {
+    if key == nil {
+        return
+    }
 
+    id, err := d.keyMapTrie.Get(key)
+    if err != nil {
+        return nil, -1
+    }
+
+    return d.GetByInternalId(id)
+}
+
+// get by internal integer ID, if found return val ,otherwise -1
+func (d *DB) GetByInternalId(id int) (value []byte, ret int) {
+    if id <= 0 || id > d.state.maxId {
+        return nil, -1
+    }
+    d.lockId(id)
+    defer d.unlockId(id)
+
+    indexes := d.indexes
+    if indexes == nil {
+        Logger.Fatal("db index error")
+    }
+
+    dataLen := indexes[id].dataLen
+    blockId := indexes[id].blockId
+    index := indexes[id].index
+
+    if dataLen > 0 && indexes[id].blockSize > 0 && blockId >= 0 &&
+        index >= 0 && d.IOs[index].file != nil {
+
+        offsetSize := blockId * BaseDbSize
+        if d.isMmap && d.IOs[index].mmap != nil {
+            value = d.IOs[index].mmap[offsetSize:(offsetSize + dataLen)]
+            return value, 0
+        } else {
+            readSize, err := d.IOs[index].file.ReadAt(value[:dataLen], int64(offsetSize))
+            if err != nil || readSize != dataLen {
+                Logger.Fatal("read index error")
+            }
+        }
+    }
+
+    return value, 0
 }
 
 func (d *DB) Del() {

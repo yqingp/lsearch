@@ -84,8 +84,8 @@ func (d *DB) initIOs() {
 }
 
 func (d *DB) checkIndexIOWithId(id int) {
-    if id > d.state.dbIdMax {
-        d.state.dbIdMax = id
+    if id > d.state.maxId {
+        d.state.maxId = id
     }
 
     if id < MaxIndexSize && int64(id)*SizeofIndex >= d.indexIO.end {

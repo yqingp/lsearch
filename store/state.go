@@ -11,7 +11,7 @@ type State struct {
     mode           int
     lastId         int
     lastOff        int
-    dbIdMax        int
+    maxId          int
     dataLenMax     int
     blockIncreMode int
 }

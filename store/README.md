@@ -38,13 +38,13 @@
       }
       end := time.Now()
       fmt.Println("=============================")
-      fmt.Println("1000000 values insert spend:(ms)", end.Sub(start))
+      fmt.Println("1000000 values insert spend:(s)", end.Sub(start))
 
       ret, _ := db.Get([]byte("test0"))
       fmt.Println(string(ret))
       ret, _ = db.GetInternalId(1)
       fmt.Println(string(ret))
-      
+
       db.Close()
   }
   ```

@@ -1,6 +1,7 @@
 package engine
 
 import (
+    "github.com/yqingp/lsearch/analyzer"
     "github.com/yqingp/lsearch/log"
 )
 
@@ -8,10 +9,12 @@ type Engine struct {
     basePath string
     bindIP   string
     bindPort string
+    analyzer *analyzer.Analyzer
 }
 
 func (e *Engine) Init() error {
     log.Init()
+    e.analyzer.Init()
     return nil
 }
 
@@ -28,4 +31,28 @@ func (e *Engine) BindIpAndPort() string {
     }
 
     return ipAndPort
+}
+
+func (e *Engine) NewIndexMapping() {
+
+}
+
+func (e *Engine) UpdateIndexMapping() {
+
+}
+
+func (e *Engine) DeleteIndex() {
+
+}
+
+func (e *Engine) Index() {
+
+}
+
+func (e *Engine) Search() {
+
+}
+
+func (e *Engine) Status() {
+
 }

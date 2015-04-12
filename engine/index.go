@@ -1,4 +1,4 @@
-package lsearch
+package engine
 
 // "bytes"
 // "encoding/binary"
@@ -19,17 +19,17 @@ package lsearch
 // }
 
 type Index struct {
-	Id   uint16
-	Name string
-	// Fields           map[uint16]IndexField
-	// FiledsName       map[string]IndexField
-	ShardNum         uint16
-	ReplicaNum       uint16
-	TotalTokenNum    uint32
-	TotalDocumentNum uint64
-	TotalFieldNum    uint16
-	// Shards           map[int]Shard
-	// Replicas         map[int]Replica
+    Id   uint16
+    Name string
+    // Fields           map[uint16]IndexField
+    // FiledsName       map[string]IndexField
+    ShardNum         uint16
+    ReplicaNum       uint16
+    TotalTokenNum    uint32
+    TotalDocumentNum uint64
+    TotalFieldNum    uint16
+    // Shards           map[int]Shard
+    // Replicas         map[int]Replica
 }
 
 // type Indexes struct {

@@ -1,15 +1,15 @@
-package lsearch
+package engine
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"os"
-	"path/filepath"
+    "encoding/json"
+    "fmt"
+    "io/ioutil"
+    "os"
+    "path/filepath"
 )
 
 const (
-	DefaultStorePath = "./lsearch_store"
+    DefaultStorePath = "./lsearch_store"
 )
 
 // var (
@@ -20,44 +20,44 @@ const (
 // )
 
 type config struct {
-	storePath string `json:"store_path"`
+    storePath string `json:"store_path"`
 }
 
 // if basePath is nil  then use default file path `DefaultStorePath`
 func newConfig(basePath string) *config {
 
-	config := &config{}
+    config := &config{}
 
-	if basePath != "" {
+    if basePath != "" {
 
-		data, err := ioutil.ReadFile(basePath)
+        data, err := ioutil.ReadFile(basePath)
 
-		if err != nil {
-			Logger.Fatal(err)
-		}
+        if err != nil {
+            Logger.Fatal(err)
+        }
 
-		if err := json.Unmarshal(data, config); err != nil {
-			Logger.Fatal(err)
-		}
+        if err := json.Unmarshal(data, config); err != nil {
+            Logger.Fatal(err)
+        }
 
-		if config.storePath == "" {
-			Logger.Fatal(err)
-		}
-	} else {
-		config.storePath = DefaultStorePath
-	}
+        if config.storePath == "" {
+            Logger.Fatal(err)
+        }
+    } else {
+        config.storePath = DefaultStorePath
+    }
 
-	config.storePath, _ = filepath.Abs(config.storePath)
-	fmt.Println(config.storePath)
-	return config
+    config.storePath, _ = filepath.Abs(config.storePath)
+    fmt.Println(config.storePath)
+    return config
 }
 
 func (c *config) String() string {
-	return fmt.Sprintf("StorePath:[%s]", c.storePath)
+    return fmt.Sprintf("StorePath:[%s]", c.storePath)
 }
 
 func (c *config) initStorePath() {
-	if err := os.MkdirAll(c.storePath, 0777); err != nil {
-		Logger.Fatal(err)
-	}
+    if err := os.MkdirAll(c.storePath, 0777); err != nil {
+        Logger.Fatal(err)
+    }
 }

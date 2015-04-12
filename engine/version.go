@@ -1,5 +1,5 @@
-package lsearch
+package engine
 
 const (
-	Ver = "0.0.1"
+    Ver = "0.0.1"
 )

@@ -1,28 +1,38 @@
 package main
 
-// "github.com/yqingp/lsearch/"
-
 import (
-    "fmt"
-    "github.com/yqingp/lsearch/index"
+    "github.com/yqingp/lsearch/engine"
+    "net/http"
+    "runtime"
 )
 
-type LSearch struct {
-    config *config
-    engine *index.Engine
+var lsearch engine.Engine
+
+func mappingHandler(rw http.ResponseWriter, req *http.Request) {
+
 }
 
-func NewLSearch(configFilePath string) *LSearch {
-    return &LSearch{
-        config: newConfig(configFilePath),
-        engine: &index.Engine{},
-    }
+func statusHandler(rw http.ResponseWriter, req *http.Request) {
+
 }
 
-func (this *LSearch) Init() {
-    fmt.Println("init")
-    this.config.initStorePath()
-    if err := this.engine.Init(this.config.storePath); err != nil {
-        Logger.Fatal(err)
-    }
+func searchHandler(rw http.ResponseWriter, req *http.Request) {
+
+}
+
+func indexHandler(rw http.ResponseWriter, req *http.Request) {
+}
+
+func routes() {
+    http.HandleFunc("/_mapping/*", mappingHandler)
+    http.HandleFunc("/_status/*", statusHandler)
+    http.HandleFunc("/search", searchHandler)
+    http.HandleFunc("/index", indexHandler)
+}
+
+func main() {
+    lsearch.Init()
+    runtime.GOMAXPROCS(runtime.NumCPU())
+    routes()
+    http.ListenAndServe(lsearch.BindIpAndPort(), nil)
 }

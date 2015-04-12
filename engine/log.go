@@ -1,8 +1,8 @@
-package lsearch
+package engine
 
 import (
-	"log"
-	"os"
+    "log"
+    "os"
 )
 
 var Logger = log.New(os.Stderr, "LSearch: ", log.Lshortfile|log.Ldate|log.Ltime)

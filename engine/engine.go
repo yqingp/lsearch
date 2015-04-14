@@ -4,13 +4,12 @@ import (
     "github.com/yqingp/lsearch/analyzer"
     "github.com/yqingp/lsearch/config"
     "github.com/yqingp/lsearch/index"
-    "github.com/yqingp/lsearch/log"
-    "github.com/yqingp/lsearch/search"
+    // "github.com/yqingp/lsearch/search"
 )
 
 type Engine struct {
     analyzer        *analyzer.Analyzer
-    config          *config.Config
+    Config          *config.Config
     version         string
     indexes         map[string]*index.Index
     indexWorkers    []chan IndexRequest
@@ -21,25 +20,14 @@ type Engine struct {
 }
 
 func (e *Engine) Init() error {
-    e.config = config.NewConfig()
-    log.Init()
+    e.Config = config.NewConfig()
     e.analyzer.Init()
     return nil
 }
 
-func (e *Engine) BindIpAndPort() string {
-    ipAndPort := ""
-    if e.bindIP != "" {
-        ipAndPort += e.bindIP
-    }
-    ipAndPort += ":"
-    if e.bindPort != "" {
-        ipAndPort += e.bindPort
-    } else {
-        ipAndPort += "8866"
-    }
-
-    return ipAndPort
+func (e *Engine) BindAddr() string {
+    return ":8866"
+    // return e.Config.IP + ":" + e.Config.Port
 }
 
 func (e *Engine) NewIndexMapping() {

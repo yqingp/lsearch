@@ -9,16 +9,19 @@ import (
 )
 
 type Engine struct {
-    basePath string
-    bindIP   string
-    bindPort string
-    analyzer *analyzer.Analyzer
-    config   *config.Config
-    version  string
-    indexes  []*index.Index
+    analyzer        *analyzer.Analyzer
+    config          *config.Config
+    version         string
+    indexes         map[string]*index.Index
+    indexWorkers    []chan IndexRequest
+    searchWrokers   []chan SearchRequest
+    analyzerWorkers []chan AnalyzerRequest
+    mappingWorkers  []chan MappingRequest
+    status          *Status
 }
 
 func (e *Engine) Init() error {
+    e.config = config.NewConfig()
     log.Init()
     e.analyzer.Init()
     return nil

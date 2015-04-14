@@ -2,7 +2,10 @@ package engine
 
 import (
     "github.com/yqingp/lsearch/analyzer"
+    "github.com/yqingp/lsearch/config"
+    "github.com/yqingp/lsearch/index"
     "github.com/yqingp/lsearch/log"
+    "github.com/yqingp/lsearch/search"
 )
 
 type Engine struct {
@@ -10,6 +13,9 @@ type Engine struct {
     bindIP   string
     bindPort string
     analyzer *analyzer.Analyzer
+    config   *config.Config
+    version  string
+    indexes  []*index.Index
 }
 
 func (e *Engine) Init() error {

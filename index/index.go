@@ -1,35 +1,28 @@
 package index
 
 import (
-	"github.com/yqingp/lsearch/analyzer"
-	"github.com/yqingp/lsearch/field"
-)
-
-const (
-// LockFileName = ""
+    "github.com/yqingp/lsearch/analyzer"
+    "github.com/yqingp/lsearch/document"
+    "github.com/yqingp/lsearch/field"
+    "github.com/yqingp/lsearch/store"
 )
 
 type Index struct {
-	id              int
-	name            string
-	createdAt       int64
-	updatedAt       int64
-	indexMeta       *IndexMeta
-	defaultAnalyzer *analyzer.Analyzer
-	fields          []*field.Filed
-	fieldNum        int
-	documentNum     int
-	indexPath       string
+    Id              int
+    Name            string
+    CreatedAt       int64
+    UpdatedAt       int64
+    DefaultAnalyzer *analyzer.Analyzer
+    Fields          []*field.Filed
+    FieldNum        int
+    DocumentNum     int
+    DB              *store.DB
 }
 
-func recoverIndex(indexPath string) (*Index, error) {
-	index := &Index{}
-	index.indexMeta = newIndexMeta(index)
-	index.indexPath = indexPath
-	isExistMeta, err := index.indexMeta.recoverMeta()
-	if !isExistMeta {
-		return nil, nil
-	}
+func (i *Index) IndexDocuments(documents []document.Document) {
 
-	return nil, err
+}
+
+func (i *Index) internalIndexDocument(document document.Document) {
+
 }

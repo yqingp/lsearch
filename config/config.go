@@ -2,13 +2,10 @@ package config
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
+	"log"
 	"os"
-	"path"
-	"reflect"
-	"strconv"
-	"strings"
+	"path/filepath"
 )
 
 const (
@@ -24,14 +21,18 @@ type Config struct {
 // parse the root dir "config.json" and init base store path
 // if basePath is nil  then use default file path `DefaultStorePath`
 func NewConfig() *Config {
-	configFile, err := os.Open("../config.json")
+	config_st := &Config{}
+	content, err := ioutil.ReadFile("config.json")
 	if err != nil {
-		//Logger.Fatal(err.Error())
+		log.Fatal(err)
 	}
-	//jsonParser := json.NewDecoder(configFile)
-	//if err = jsonParser.Decode(&Config); err != nil {
-	//printError("parsing config file", err.Error())
-	//}
-	//return &Config
-	return nil
+	//json.Unmarshal(, v)
+	err = json.Unmarshal(content, config_st)
+	if err != nil {
+		log.Fatal(err)
+	}
+	filepath.Abs(os.Args[0])
+	log.Printf("%v", config_st.Port)
+
+	return config_st
 }

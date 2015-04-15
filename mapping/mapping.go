@@ -1,17 +1,24 @@
-package lsearch
+package mapping
 
-type IndexMapping struct {
-    Name                   string
-    DefaultIndexerAnalyzer string
-    DeafultSearchAanlyzer  string
-    ReplicaNum             int
-    ShardNum               int
+import (
+    "encoding/json"
+    "errors"
+    "github.com/yqingp/lsearch/field"
+    "log"
+)
+
+type Mapping struct {
+    Action string `json:"action"`
+    Name   string `json:"name"`
+    Fields []field.Filed
 }
 
-func NewIndexMapping() IndexMapping {
-    return IndexMapping{
-        Name: "",
-        DefaultIndexerAnalyzer: "none",
-        DeafultSearchAanlyzer:  "none",
+func NewMapping(body []byte) (*Mapping, error) {
+    mapping := &Mapping{}
+    if err := json.Unmarshal(body, mapping); err != nil {
+        return nil, errors.New("decode mapping error")
     }
+
+    log.Println(mapping)
+    return mapping, nil
 }

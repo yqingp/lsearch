@@ -9,3 +9,4 @@ index
 base
 trie
 state
+*.rb

@@ -4,6 +4,7 @@ import (
     "github.com/yqingp/lsearch/analyzer"
     "github.com/yqingp/lsearch/config"
     "github.com/yqingp/lsearch/index"
+    "sync"
     // "github.com/yqingp/lsearch/search"
 )
 
@@ -17,6 +18,7 @@ type Engine struct {
     analyzerWorkers []chan AnalyzerRequest
     mappingWorkers  []chan MappingRequest
     status          *Status
+    mappingMutex    *sync.Mutex
 }
 
 func (e *Engine) Init() error {
@@ -27,14 +29,6 @@ func (e *Engine) Init() error {
 
 func (e *Engine) BindAddr() string {
     return e.Config.BindAddr()
-}
-
-func (e *Engine) NewIndexMapping() {
-
-}
-
-func (e *Engine) UpdateIndexMapping() {
-
 }
 
 func (e *Engine) DeleteIndex() {

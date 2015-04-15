@@ -1,15 +1,11 @@
 package field
 
-import (
-	"github.com/yqingp/lsearch/analyzer"
-)
+import ()
 
 type Filed struct {
-	Id             int
-	Name           string
-	CreatedAt      int64
-	FieldType      FieldType
-	SearchAnalyzer *analyzer.Analyzer
-	IndexAnalyzer  *analyzer.Analyzer
-	IsIndex        bool
+    Id        int
+    Name      string `json:"name"`
+    CreatedAt int64
+    FieldType FieldType `json:"type"`
+    IsIndex   bool      `json:"is_index",omitempty`
 }

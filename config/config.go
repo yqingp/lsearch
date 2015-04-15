@@ -2,7 +2,13 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
+	"io/ioutil"
 	"os"
+	"path"
+	"reflect"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -22,9 +28,10 @@ func NewConfig() *Config {
 	if err != nil {
 		//Logger.Fatal(err.Error())
 	}
-	jsonParser := json.NewDecoder(configFile)
-	if err = jsonParser.Decode(&Config); err != nil {
-		//printError("parsing config file", err.Error())
-	}
+	//jsonParser := json.NewDecoder(configFile)
+	//if err = jsonParser.Decode(&Config); err != nil {
+	//printError("parsing config file", err.Error())
+	//}
+	//return &Config
 	return nil
 }

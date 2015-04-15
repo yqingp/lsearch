@@ -1,33 +1,32 @@
 package engine
 
 import (
-	"github.com/yqingp/lsearch/analyzer"
-	"github.com/yqingp/lsearch/config"
-	"github.com/yqingp/lsearch/index"
-	// "github.com/yqingp/lsearch/search"
+    "github.com/yqingp/lsearch/analyzer"
+    "github.com/yqingp/lsearch/config"
+    "github.com/yqingp/lsearch/index"
+    // "github.com/yqingp/lsearch/search"
 )
 
 type Engine struct {
-	analyzer        *analyzer.Analyzer
-	Config          *config.Config
-	version         string
-	indexes         map[string]*index.Index
-	indexWorkers    []chan IndexRequest
-	searchWrokers   []chan SearchRequest
-	analyzerWorkers []chan AnalyzerRequest
-	mappingWorkers  []chan MappingRequest
-	status          *Status
+    analyzer        *analyzer.Analyzer
+    Config          *config.Config
+    version         string
+    indexes         map[string]*index.Index
+    indexWorkers    []chan IndexRequest
+    searchWrokers   []chan SearchRequest
+    analyzerWorkers []chan AnalyzerRequest
+    mappingWorkers  []chan MappingRequest
+    status          *Status
 }
 
 func (e *Engine) Init() error {
-	e.Config = config.NewConfig()
-	e.analyzer.Init()
-	return nil
+    e.Config = config.NewConfig()
+    e.analyzer.Init()
+    return nil
 }
 
 func (e *Engine) BindAddr() string {
-	//return ":8866"
-	return e.Config.IP + ":" + e.Config.Port
+    return e.Config.BindAddr()
 }
 
 func (e *Engine) NewIndexMapping() {

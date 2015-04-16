@@ -17,10 +17,6 @@ func mapping(rw http.ResponseWriter, req *http.Request) {
 }
 
 func statusHandler(rw http.ResponseWriter, req *http.Request) {
-    // action := req.RequestURI[len("/_mapping/"):]
-    // body, _ := ioutil.ReadAll(req.Body)
-    // lsearch.MappingHandler(action, body)
-    // req.Body.Close()
 }
 
 func searchHandler(rw http.ResponseWriter, req *http.Request) {

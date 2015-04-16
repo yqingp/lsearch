@@ -103,9 +103,9 @@ func (d *DB) popBlockQueue(blocksCountNum int) *BlockQueue {
                 blockQueues[pos].blockId = tmpBlockQueue.blockId
             } else {
                 offsetSize = int64(blockQueues[pos].blockId * BaseDbSize)
-                readSize, err := d.indexIO.file.ReadAt(buf[:SizeOfBlockQueue], offsetSize)
+                _, err := d.indexIO.file.ReadAt(buf[:SizeOfBlockQueue], offsetSize)
 
-                if err != nil || readSize < 0 {
+                if err != nil {
                     Logger.Fatal("read index file error", err)
                 }
                 rwBuffer.Write(buf)

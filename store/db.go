@@ -159,8 +159,8 @@ func (d *DB) internalSet(id int, value []byte) int {
             indexes[id].dataLen = valueLen
             ret = id
         } else {
-            writeSize, err := d.indexIO.file.WriteAt(value, int64(indexes[id].blockId*BaseDbSize))
-            if err != nil || writeSize != valueLen {
+            _, err := d.indexIO.file.WriteAt(value, int64(indexes[id].blockId*BaseDbSize))
+            if err != nil {
                 indexes[id].dataLen = 0
                 Logger.Fatal("write index error")
             }

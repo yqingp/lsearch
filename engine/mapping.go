@@ -19,16 +19,14 @@ post structure
 	...
 	]
 }
-
 */
-func (e *Engine) MappingHandler(body []byte) {
-    mapping.NewMapping(body)
-}
+func (e *Engine) MappingHandler(body []byte) error {
+    mapping, err := mapping.New(body)
+    if err != nil {
+        return err
+    }
 
-func (e *Engine) newMapping() {
+    _ = mapping
 
-}
-
-func (e *Engine) updateMapping() {
-
+    return nil
 }

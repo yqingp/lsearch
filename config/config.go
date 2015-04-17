@@ -25,7 +25,7 @@ type Config struct {
 
 // parse the root dir "config.json" and init base store path
 // using default config "store" or "ip" or "port" if config.json not exist
-func NewConfig() *Config {
+func New() *Config {
     config := &Config{}
     content, err := ioutil.ReadFile("config.json")
     if err == nil {

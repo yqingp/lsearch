@@ -22,27 +22,11 @@ type Engine struct {
 }
 
 func (e *Engine) Init() error {
-    e.Config = config.NewConfig()
+    e.Config = config.New()
     e.analyzer.Init()
     return nil
 }
 
 func (e *Engine) BindAddr() string {
     return e.Config.BindAddr()
-}
-
-func (e *Engine) DeleteIndex() {
-
-}
-
-func (e *Engine) Index() {
-
-}
-
-func (e *Engine) Search() {
-
-}
-
-func (e *Engine) Status() {
-
 }

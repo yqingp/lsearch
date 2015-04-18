@@ -24,9 +24,14 @@ type Engine struct {
 func (e *Engine) Init() error {
     e.Config = config.New()
     e.analyzer.Init()
+    e.initMutex()
     return nil
 }
 
 func (e *Engine) BindAddr() string {
     return e.Config.BindAddr()
+}
+
+func (e *Engine) initMutex() {
+    e.mappingMutex = &sync.Mutex{}
 }

@@ -8,9 +8,9 @@ import (
 )
 
 type Mapping struct {
-    Action string        `json:"action,omitempty"`
-    Name   string        `json:"name,omitempty"`
-    Fields []field.Filed `json:"fields,omitempty"`
+    Action string         `json:"action,omitempty"`
+    Name   string         `json:"name,omitempty"`
+    Fields []*field.Filed `json:"fields,omitempty"`
 }
 
 /*

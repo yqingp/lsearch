@@ -26,7 +26,19 @@ func (e *Engine) MappingHandler(body []byte) error {
         return err
     }
 
-    _ = mapping
+    action := mapping.Action
+
+    if action == "create" {
+        if err := e.NewIndex(mapping); err != nil {
+            return err
+        }
+    }
+
+    if action == "delete" {
+        if err := e.RemoveIndex(mapping); err != nil {
+            return err
+        }
+    }
 
     return nil
 }

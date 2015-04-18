@@ -10,3 +10,4 @@ base
 trie
 state
 *.rb
+dbpath

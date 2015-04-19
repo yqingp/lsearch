@@ -7,10 +7,14 @@ import (
     "log"
 )
 
+const (
+    MaxFiledNum = 100
+)
+
 type Mapping struct {
-    Action string         `json:"action,omitempty"`
-    Name   string         `json:"name,omitempty"`
-    Fields []*field.Filed `json:"fields,omitempty"`
+    Action string        `json:"action,omitempty"`
+    Name   string        `json:"name,omitempty"`
+    Fields []field.Filed `json:"fields,omitempty"`
 }
 
 /*
@@ -76,6 +80,10 @@ func (m *Mapping) validateFields() bool {
     }
 
     if _, ok := names["id"]; !ok {
+        return false
+    }
+
+    if len(m.Fields) > MaxFiledNum {
         return false
     }
 

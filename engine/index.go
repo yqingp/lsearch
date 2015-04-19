@@ -18,10 +18,7 @@ func (e *Engine) NewIndex(mapping *mapping.Mapping) error {
         return errors.New("Index Exist")
     }
 
-    _, err := index.New(mapping, e.Config.StorePath)
-    if err != nil {
-        return err
-    }
+    index.New(mapping, e.Config.StorePath)
 
     return nil
 }

@@ -41,13 +41,5 @@ func (e *Engine) MappingHandler(body []byte) (*index.IndexMeta, error) {
         }
     }
 
-    if action == "view" {
-        results, err := e.ViewIndex(mapping)
-        if err != nil {
-            return nil, err
-        }
-        return results, nil
-    }
-
     return nil, nil
 }

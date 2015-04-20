@@ -15,8 +15,6 @@ type Index struct {
     DocumentNum int
     DB          *store.DB
     Meta        *IndexMeta
-    MetaFile    *os.File
-    MetaMmap    store.Mmap
 }
 
 func New(mapping *mapping.Mapping, baseStorePath string) *Index {
@@ -33,7 +31,7 @@ func New(mapping *mapping.Mapping, baseStorePath string) *Index {
         Meta: &IndexMeta{},
     }
 
-    index.MetaFile, index.Meta, index.MetaMmap = newMeta(storePath, mapping)
+    index.Meta = newMeta(storePath, mapping)
 
     return index
 }

@@ -36,3 +36,23 @@ func (e *Engine) RemoveIndex(mapping *mapping.Mapping) error {
     delete(e.indexes, mapping.Name)
     return nil
 }
+
+func (e *Engine) RecoverIndexes() {
+    if e.isInit {
+        return
+    }
+    e.indexes = index.RecoverIndexes(e.Config.StorePath)
+}
+
+func (e *Engine) ViewIndex(mapping *mapping.Mapping) (*index.IndexMeta, error) {
+    e.mappingMutex.Lock()
+    defer e.mappingMutex.Unlock()
+
+    index, ok := e.indexes[mapping.Name]
+
+    if !ok {
+        return nil, errors.New("Index Not Found")
+    }
+
+    return index.View(), nil
+}

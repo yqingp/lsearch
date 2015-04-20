@@ -4,7 +4,7 @@ import (
     "encoding/json"
     "errors"
     "github.com/yqingp/lsearch/field"
-    "log"
+    "time"
 )
 
 const (
@@ -40,13 +40,11 @@ func New(body []byte) (*Mapping, error) {
         return nil, err
     }
 
-    log.Println(mapping)
-
     return mapping, nil
 }
 
 func (m *Mapping) validate() error {
-    if m.Action != "create" && m.Action != "delete" {
+    if m.Action != "create" && m.Action != "delete" && m.Action != "view" {
         return errors.New("mapping action error")
     }
 
@@ -55,6 +53,10 @@ func (m *Mapping) validate() error {
     }
 
     if m.Action == "delete" {
+        return nil
+    }
+
+    if m.Action == "view" {
         return nil
     }
 
@@ -77,6 +79,7 @@ func (m *Mapping) validateFields() bool {
         if !v.Valid() {
             return false
         }
+        v.CreatedAt = time.Now().Unix()
     }
 
     if _, ok := names["id"]; !ok {

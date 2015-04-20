@@ -1,6 +1,7 @@
 package engine
 
 import (
+    // "fmt"
     "github.com/yqingp/lsearch/analyzer"
     "github.com/yqingp/lsearch/config"
     "github.com/yqingp/lsearch/index"
@@ -19,13 +20,15 @@ type Engine struct {
     mappingWorkers  []chan MappingRequest
     status          *Status
     mappingMutex    *sync.Mutex
+    isInit          bool
 }
 
-func (e *Engine) Init() error {
+func (e *Engine) Init() {
     e.Config = config.New()
     e.analyzer.Init()
     e.initMutex()
-    return nil
+    e.RecoverIndexes()
+    e.isInit = true
 }
 
 func (e *Engine) BindAddr() string {

@@ -18,6 +18,7 @@ type IndexRequest struct {
     Results      interface{}
     Duration     time.Duration
     Index        *index.Index
+    Error        error
 }
 
 func (e *Engine) NewIndex(mapping *mapping.Mapping) error {
@@ -29,8 +30,8 @@ func (e *Engine) NewIndex(mapping *mapping.Mapping) error {
         return errors.New("Index Exist")
     }
 
-    index.New(mapping, e.Config.StorePath)
-
+    e.indexes[mapping.Name] = index.New(mapping, e.Config.StorePath)
+    e.indexes[mapping.Name].Analyzer = e.analyzer
     return nil
 }
 
@@ -53,6 +54,10 @@ func (e *Engine) RecoverIndexes() {
         return
     }
     e.indexes = index.RecoverIndexes(e.Config.StorePath)
+
+    for _, v := range e.indexes {
+        v.Analyzer = e.analyzer
+    }
 }
 
 func (e *Engine) ViewIndex(name string) (*index.IndexMeta, error) {
@@ -65,16 +70,31 @@ func (e *Engine) ViewIndex(name string) (*index.IndexMeta, error) {
     return index.View(), nil
 }
 
-func (e *Engine) Index(body []byte) {
-    indexRequest := &IndexRequest{
-        Body:         body,
-        RequestStart: time.Now(),
-        Status:       make(chan bool),
+func (e *Engine) Index(body []byte) error {
+    indexRequest, err := ParseIndexRequest(body)
+    if err != nil {
+        return err
     }
+
+    indexRequest.RequestStart = time.Now()
+    indexRequest.Status = make(chan bool)
+
+    if err = indexRequest.Valid(); err != nil {
+        return err
+    }
+
+    index, ok := e.indexes[indexRequest.Name]
+
+    if !ok {
+        return errors.New("Index Not Found")
+    }
+    indexRequest.Index = index
 
     e.IndexRequests <- indexRequest
     <-indexRequest.Status
     indexRequest.Duration = time.Now().Sub(indexRequest.RequestStart)
+
+    return nil
 }
 
 func ParseIndexRequest(body []byte) (*IndexRequest, error) {
@@ -82,6 +102,15 @@ func ParseIndexRequest(body []byte) (*IndexRequest, error) {
     if err := json.Unmarshal(body, request); err != nil {
         return nil, errors.New("decode request error")
     }
-
     return request, nil
+}
+
+func (i *IndexRequest) Valid() error {
+    if i.Name == "" || i.Action == "" || i.Documents == nil {
+        return errors.New("Index Request Error")
+    }
+
+    i.Duration = time.Now().Sub(i.RequestStart)
+
+    return nil
 }

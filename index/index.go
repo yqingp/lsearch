@@ -1,11 +1,16 @@
 package index
 
 import (
+    "encoding/json"
+    "errors"
+    "github.com/yqingp/lsearch/analyzer"
     "github.com/yqingp/lsearch/document"
     "github.com/yqingp/lsearch/mapping"
     "github.com/yqingp/lsearch/store"
+    "github.com/yqingp/lsearch/util"
     "os"
     "path/filepath"
+    "sort"
     // "time"
 )
 
@@ -14,7 +19,9 @@ type Index struct {
     Name        string
     DocumentNum int
     DB          *store.DB
+    DocumentDB  *store.DB
     Meta        *IndexMeta
+    Analyzer    *analyzer.Analyzer
 }
 
 func New(mapping *mapping.Mapping, baseStorePath string) *Index {
@@ -25,10 +32,17 @@ func New(mapping *mapping.Mapping, baseStorePath string) *Index {
         panic(err)
     }
 
+    documentStorePath := filepath.Join(storePath, "documents")
+    documentDb, err := store.Open(documentStorePath, false)
+    if err != nil {
+        panic(err)
+    }
+
     index := &Index{
-        Name: mapping.Name,
-        DB:   db,
-        Meta: &IndexMeta{},
+        Name:       mapping.Name,
+        DB:         db,
+        Meta:       &IndexMeta{},
+        DocumentDB: documentDb,
     }
 
     index.Meta = newIndexMeta(storePath, mapping)
@@ -58,10 +72,18 @@ func RecoverIndexes(baseStorePath string) map[string]*Index {
             panic(err)
         }
 
-        index := &Index{
-            Name: name,
-            DB:   db,
+        documentStorePath := filepath.Join(baseStorePath, "documents")
+        documentDb, err := store.Open(documentStorePath, false)
+        if err != nil {
+            panic(err)
         }
+
+        index := &Index{
+            Name:       name,
+            DB:         db,
+            DocumentDB: documentDb,
+        }
+
         storePath := filepath.Join(baseStorePath, name)
         index.Meta = recoverIndexMeta(storePath)
         indexes[name] = index
@@ -70,11 +92,50 @@ func RecoverIndexes(baseStorePath string) map[string]*Index {
     return indexes
 }
 
-func (i *Index) IndexDocuments(documents []document.Document) {
+func (i *Index) AddDocuments(documents []document.Document) (interface{}, error) {
+    if !i.validateDocuments(documents) {
+        return nil, errors.New("documents structure error")
+    }
+
+    for _, doc := range documents {
+        i.internalAddDocument(doc)
+    }
+
+    return nil, nil
+}
+
+func (i *Index) internalAddDocument(document document.Document) {
+    document.Analyze(i.Analyzer)
+
+    id := document.Id()
+    data, err := document.Encode()
+    if err != nil {
+        panic(err)
+    }
+
+    internalId, err := i.DocumentDB.Set(-1, []byte(id), data)
+    if err != nil {
+        panic(err)
+    }
+
+    for k, _ := range document.Tokens() {
+        data, _ := i.DB.Get([]byte(k)) // fix
+        postings := make(util.Posting, 1000)
+        json.Unmarshal(data, postings)
+        postings = append(postings, internalId)
+        sort.Sort(util.Posting(postings))
+
+        data, err = json.Marshal(postings)
+
+        i.DB.Set(-1, []byte(k), []byte(data))
+    }
+}
+
+func (i *Index) DeleteDocuments(documents []document.Document) {
 
 }
 
-func (i *Index) internalIndexDocument(document document.Document) {
+func (i *Index) UpdateDocuments(documents []document.Document) {
 
 }
 
@@ -94,5 +155,18 @@ func initStorePath(baseStorePath string, name string) string {
     if err := os.MkdirAll(storePath, 0755); err != nil {
         panic(err)
     }
+
     return storePath
+}
+
+func (i *Index) validateDocuments(documents []document.Document) bool {
+    if len(documents) < 1 {
+        return false
+    }
+
+    if !document.Validate(documents, i.Meta.Fields) {
+        return false
+    }
+
+    return true
 }

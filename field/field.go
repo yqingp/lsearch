@@ -21,3 +21,15 @@ func (f Filed) Valid() (isValid bool) {
 
     return true
 }
+
+func (f Filed) IsValidValue(value interface{}) (isValid bool) {
+    if f.FieldType == 1 {
+        _, ok := value.(string)
+        if !ok {
+            return false
+        }
+
+        return true
+    }
+    return false
+}

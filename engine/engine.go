@@ -10,17 +10,16 @@ import (
 )
 
 type Engine struct {
-    analyzer        *analyzer.Analyzer
-    Config          *config.Config
-    version         string
-    indexes         map[string]*index.Index
-    indexWorkers    []chan IndexRequest
-    searchWrokers   []chan SearchRequest
-    analyzerWorkers []chan AnalyzerRequest
-    mappingWorkers  []chan MappingRequest
-    status          *Status
-    mappingMutex    *sync.Mutex
-    isInit          bool
+    analyzer         *analyzer.Analyzer
+    Config           *config.Config
+    version          string
+    indexes          map[string]*index.Index
+    IndexRequests    chan *IndexRequest
+    SearchRequests   chan *SearchRequest
+    AnalyzerRequests chan *AnalyzerRequest
+    status           *Status
+    mappingMutex     *sync.Mutex
+    isInit           bool
 }
 
 func (e *Engine) Init() {

@@ -1,7 +1,6 @@
 package document
 
 type Document struct {
-    Id      int64
-    fields  map[string]interface{}
-    IndexId int
+    Values  map[string]interface{} `json:"values"`
+    gloabId uint64
 }

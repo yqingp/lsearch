@@ -79,6 +79,25 @@ func (d *DB) Close() {
     }
 }
 
+func (d *DB) CheckAndSetId(key []byte) (int, bool, error) {
+
+    id, err := d.keyMapTrie.Get(key)
+    if err != nil {
+        return id, false, err
+    }
+
+    if id == 0 {
+        id, err := d.keyMapTrie.Set(key)
+        if err != nil {
+            return id, false, err
+        }
+
+        return id, false, nil
+    }
+
+    return id, true, nil
+}
+
 // if id is < 1  generate auto increment id
 func (d *DB) Set(id int, key []byte, value []byte) (int, error) {
     if key == nil || value == nil || len(value) == 0 {

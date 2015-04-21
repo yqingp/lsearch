@@ -9,16 +9,17 @@ import (
 
 const (
     MaxLineCount  = 256
-    BaseNodeCount = 1000000
-    MaxNodeCount  = 100000000
+    BaseNodeCount = 10000  //1000000
+    MaxNodeCount  = 100000 // 100000000
 )
 
 type TrieState struct {
-    id      int
-    current int
-    total   int
-    left    int
-    list    [MaxLineCount]TrieList
+    id       int
+    current  int
+    total    int
+    left     int
+    list     [MaxLineCount]TrieList
+    totalNum int
 }
 
 type TrieList struct {
@@ -225,6 +226,7 @@ func (t *Trie) Set(key []byte) (int, error) {
         t.state.id++
         t.nodes[i].data = t.state.id
         ret = t.nodes[i].data
+        t.state.totalNum++
     }
 
     return ret, nil
@@ -321,6 +323,7 @@ func (t *Trie) Del(key []byte) (int, error) {
     if size == 1 && i >= 0 && i < t.state.total && t.nodes[i].data != 0 {
         ret = t.nodes[i].data
         t.nodes[i].data = 0
+        t.state.totalNum--
         return ret, nil
     }
 
@@ -367,6 +370,7 @@ func (t *Trie) Del(key []byte) (int, error) {
             if m+1 == size {
                 ret = t.nodes[i].data
                 t.nodes[i].data = 0
+                t.state.totalNum--
                 return ret, nil
             }
             break

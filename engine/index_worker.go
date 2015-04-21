@@ -4,19 +4,24 @@ import (
     "runtime"
 )
 
-func (e *Engine) StartWorkers() {
+func (e *Engine) initIndexWorkers() {
+    e.IndexRequests = make(chan *IndexRequest, runtime.NumCPU())
+}
+
+func (e *Engine) startIndexWorkers() {
     cpuNum := runtime.NumCPU()
     for i := 0; i < cpuNum; i++ {
-        go DoIndex(e)
+        go doIndex(e)
     }
 }
 
-func DoIndex(e *Engine) {
+func doIndex(e *Engine) {
     for {
         request := <-e.IndexRequests
         switch request.Action {
         case "create":
             {
+                Logger.Println(request.Documents)
                 results, err := request.Index.AddDocuments(request.Documents)
                 request.Results = results
                 request.Error = err

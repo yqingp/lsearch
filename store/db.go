@@ -63,6 +63,10 @@ func (d *DB) init() {
 
 }
 
+func (d DB) RecordNum() int {
+    return d.keyMapTrie.state.totalNum
+}
+
 func (d *DB) Close() {
     if d.loggerFile != nil {
         d.loggerFile.Close()

@@ -5,6 +5,8 @@ import (
     "github.com/yqingp/lsearch/analyzer"
     "github.com/yqingp/lsearch/config"
     "github.com/yqingp/lsearch/index"
+    "log"
+    "os"
     "sync"
     // "github.com/yqingp/lsearch/search"
 )
@@ -22,11 +24,15 @@ type Engine struct {
     isInit           bool
 }
 
+var Logger *log.Logger = log.New(os.Stdout, "DEGUG", log.Llongfile|log.Ldate|log.Ltime)
+
 func (e *Engine) Init() {
     e.Config = config.New()
     e.analyzer.Init()
     e.initMutex()
     e.RecoverIndexes()
+    e.initIndexWorkers()
+    e.startIndexWorkers()
     e.isInit = true
 }
 

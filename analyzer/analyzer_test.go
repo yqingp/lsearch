@@ -7,8 +7,8 @@ import (
 func TestA(t *testing.T) {
     an := NewAnalyzer()
     an.Init()
-    words := an.Analyze("测试分词")
-    for _, v := range words {
-        t.Log(v)
+    words := an.Analyze("测试微博索引")
+    for k, _ := range words {
+        t.Log(k)
     }
 }

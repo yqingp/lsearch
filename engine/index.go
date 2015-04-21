@@ -16,7 +16,7 @@ type IndexRequest struct {
     RequestStart time.Time
     Status       chan bool
     Results      interface{}
-    Duration     time.Duration
+    Duration     string
     Index        *index.Index
     Error        error
 }
@@ -53,7 +53,7 @@ func (e *Engine) RecoverIndexes() {
     if e.isInit {
         return
     }
-    e.indexes = index.RecoverIndexes(e.Config.StorePath)
+    e.indexes = index.Recover(e.Config.StorePath)
 
     for _, v := range e.indexes {
         v.Analyzer = e.analyzer
@@ -70,10 +70,21 @@ func (e *Engine) ViewIndex(name string) (*index.IndexMeta, error) {
     return index.View(), nil
 }
 
-func (e *Engine) Index(body []byte) error {
+func (e *Engine) Index(body []byte) interface{} {
     indexRequest, err := ParseIndexRequest(body)
+
+    response := struct {
+        Took    string      `json:"took"`
+        Results interface{} `json:"results"`
+        Error   string      `json:"error,omitempty"`
+    }{}
+
     if err != nil {
-        return err
+        response.Results = ""
+        response.Took = "0ms"
+        response.Error = err.Error()
+
+        return response
     }
 
     indexRequest.RequestStart = time.Now()
@@ -86,15 +97,22 @@ func (e *Engine) Index(body []byte) error {
     index, ok := e.indexes[indexRequest.Name]
 
     if !ok {
-        return errors.New("Index Not Found")
+        response.Results = ""
+        response.Took = "0ms"
+        response.Error = "Index Not Found"
     }
     indexRequest.Index = index
 
+    Logger.Println(indexRequest)
+
     e.IndexRequests <- indexRequest
     <-indexRequest.Status
-    indexRequest.Duration = time.Now().Sub(indexRequest.RequestStart)
+    indexRequest.Duration = time.Now().Sub(indexRequest.RequestStart).String()
 
-    return nil
+    response.Results = indexRequest.Results
+    response.Took = indexRequest.Duration
+
+    return response
 }
 
 func ParseIndexRequest(body []byte) (*IndexRequest, error) {
@@ -102,6 +120,8 @@ func ParseIndexRequest(body []byte) (*IndexRequest, error) {
     if err := json.Unmarshal(body, request); err != nil {
         return nil, errors.New("decode request error")
     }
+
+    Logger.Println(request)
     return request, nil
 }
 
@@ -110,7 +130,7 @@ func (i *IndexRequest) Valid() error {
         return errors.New("Index Request Error")
     }
 
-    i.Duration = time.Now().Sub(i.RequestStart)
+    i.Duration = time.Now().Sub(i.RequestStart).String()
 
     return nil
 }

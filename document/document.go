@@ -4,6 +4,7 @@ import (
     "encoding/json"
     "github.com/yqingp/lsearch/analyzer"
     "github.com/yqingp/lsearch/field"
+    "log"
 )
 
 // {
@@ -12,7 +13,7 @@ import (
 
 type Document struct {
     gloabId uint64
-    id      string `json:"id"`
+    Id      string `json:"id"`
     tokens  map[string]string
     Values  map[string]interface{} `json:"values"`
 }
@@ -25,13 +26,18 @@ func (d *Document) GloabId() uint64 {
     return d.gloabId
 }
 
-func (d *Document) Id() string {
-    return d.id
-}
+// func (d *Document) Id() string {
+//     return d.Id
+// }
 
 func (d Document) Tokens() map[string]string {
+    return d.tokens
+}
 
-    return d.Tokens()
+func (d *Document) InitTokens() {
+    if d.tokens == nil {
+        d.tokens = make(map[string]string, 100)
+    }
 }
 
 func Validate(documents []Document, fields []field.Filed) bool {
@@ -43,7 +49,7 @@ func Validate(documents []Document, fields []field.Filed) bool {
     }
 
     for _, doc := range documents {
-        if doc.Id() == "" {
+        if doc.Id == "" {
             return false
         }
         for k, v := range doc.Values {
@@ -66,6 +72,7 @@ func (d *Document) Analyze(analyzer *analyzer.Analyzer) {
         value, ok := v.(string)
         if ok && value != "" {
             words := analyzer.Analyze(value)
+            log.Println(words)
             for k, _ := range words {
                 d.tokens[k] = ""
             }

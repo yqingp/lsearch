@@ -78,11 +78,22 @@ func viewIndexHandler(rw http.ResponseWriter, req *http.Request) {
     rw.Write(w)
 }
 
+func indexDocumentsHandler(rw http.ResponseWriter, req *http.Request) {
+    body, _ := ioutil.ReadAll(req.Body)
+    defer req.Body.Close()
+
+    results := lsearch.Index(body)
+    w, _ := json.Marshal(results)
+    rw.WriteHeader(200)
+    rw.Write(w)
+}
+
 func routes() {
     http.HandleFunc("/_mapping", mapping)
     http.HandleFunc("/_status/", statusHandler)
     http.HandleFunc("/search", searchHandler)
     http.HandleFunc("/index/view", viewIndexHandler)
+    http.HandleFunc("/index/documents", indexDocumentsHandler)
 }
 
 func main() {

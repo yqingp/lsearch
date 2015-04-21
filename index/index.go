@@ -9,6 +9,7 @@ import (
     "github.com/yqingp/lsearch/mapping"
     "github.com/yqingp/lsearch/store"
     "github.com/yqingp/lsearch/util"
+    "log"
     "os"
     "path/filepath"
     "sort"
@@ -24,6 +25,8 @@ type Index struct {
     Meta        *IndexMeta
     Analyzer    *analyzer.Analyzer
 }
+
+var Logger *log.Logger = log.New(os.Stdout, "DEGUG", log.Llongfile|log.Ldate|log.Ltime)
 
 func New(mapping *mapping.Mapping, baseStorePath string) *Index {
     storePath := initStorePath(baseStorePath, mapping.Name)
@@ -51,7 +54,7 @@ func New(mapping *mapping.Mapping, baseStorePath string) *Index {
     return index
 }
 
-func RecoverIndexes(baseStorePath string) map[string]*Index {
+func Recover(baseStorePath string) map[string]*Index {
     indexes := map[string]*Index{}
 
     dir, err := os.OpenFile(baseStorePath, os.O_RDONLY, 0755)
@@ -73,7 +76,8 @@ func RecoverIndexes(baseStorePath string) map[string]*Index {
             panic(err)
         }
 
-        documentStorePath := filepath.Join(baseStorePath, "documents")
+        documentStorePath := filepath.Join(baseStorePath, name, "documents")
+
         documentDb, err := store.Open(documentStorePath, false)
         if err != nil {
             panic(err)
@@ -88,6 +92,7 @@ func RecoverIndexes(baseStorePath string) map[string]*Index {
         storePath := filepath.Join(baseStorePath, name)
         index.Meta = recoverIndexMeta(storePath)
         indexes[name] = index
+        log.Println(index.DB.RecordNum())
     }
 
     return indexes
@@ -102,12 +107,14 @@ func (i *Index) AddDocuments(documents []document.Document) (interface{}, error)
         i.internalAddDocument(doc)
     }
 
-    return nil, nil
+    return "done", nil
 }
 
 func (i *Index) internalAddDocument(doc document.Document) {
+    doc.InitTokens()
+
     doc.Analyze(i.Analyzer)
-    id := doc.Id()
+    id := doc.Id
 
     data, err := doc.Encode()
     if err != nil {
@@ -173,11 +180,15 @@ func (i *Index) internalAddDocument(doc document.Document) {
             json.Unmarshal(data, postings)
         }
 
-        pos := sort.Search(len(postings), func(i int) bool {
-            return postings[i] >= internalId
-        })
+        pos := 0
+        Logger.Println(len(postings))
+        if postings[0] > 0 {
+            pos = sort.Search(len(postings), func(i int) bool {
+                return postings[i] >= internalId
+            })
+            copy(postings[pos+1:], postings[pos:])
+        }
 
-        copy(postings[pos+1:], postings[pos:])
         postings[pos] = internalId
 
         data, _ = json.Marshal(postings)

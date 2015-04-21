@@ -222,6 +222,21 @@ func (d *DB) Get(key []byte) (value []byte, ret int) {
     return d.GetByInternalId(id)
 }
 
+func (d *DB) GetAndReturnInternalId(key []byte) ([]byte, int) {
+    if key == nil {
+        return nil, -1
+    }
+
+    id, err := d.keyMapTrie.Get(key)
+    if err != nil {
+        return nil, -1
+    }
+
+    val, _ := d.GetByInternalId(id)
+
+    return val, id
+}
+
 // get by internal integer ID, if found return val ,otherwise -1
 func (d *DB) GetByInternalId(id int) (value []byte, ret int) {
     if id <= 0 || id > d.state.maxId {

@@ -1,6 +1,7 @@
 package index
 
 import (
+    "crypto/md5"
     "encoding/json"
     "errors"
     "github.com/yqingp/lsearch/analyzer"
@@ -104,31 +105,90 @@ func (i *Index) AddDocuments(documents []document.Document) (interface{}, error)
     return nil, nil
 }
 
-func (i *Index) internalAddDocument(document document.Document) {
-    document.Analyze(i.Analyzer)
+func (i *Index) internalAddDocument(doc document.Document) {
+    doc.Analyze(i.Analyzer)
+    id := doc.Id()
 
-    id := document.Id()
-    data, err := document.Encode()
+    data, err := doc.Encode()
     if err != nil {
         panic(err)
     }
 
-    internalId, err := i.DocumentDB.Set(-1, []byte(id), data)
+    md5Val := md5.Sum(data)
+
+    exist := false
+
+    oldData, internalId := i.DocumentDB.GetAndReturnInternalId([]byte(id))
+    if internalId > 0 {
+        exist = true
+    }
+
+    oldDoc := &document.Document{}
+
+    oldTokens := oldDoc.Tokens()
+
+    if exist {
+        oldMd5Val := md5.Sum(oldData)
+        if oldMd5Val == md5Val {
+            return
+        }
+
+        if err := json.Unmarshal(oldData, oldDoc); err != nil {
+            panic(err)
+        }
+
+        oldTokens = oldDoc.Tokens()
+    }
+
+    internalId, err = i.DocumentDB.Set(-1, []byte(id), data)
+
     if err != nil {
         panic(err)
     }
 
-    for k, _ := range document.Tokens() {
+    delTokens, addTokens := CheckTokensAndSplit(oldTokens, doc.Tokens())
+
+    for k, _ := range delTokens {
         data, _ := i.DB.Get([]byte(k)) // fix
+
         postings := make(util.Posting, 1000)
         json.Unmarshal(data, postings)
-        postings = append(postings, internalId)
-        sort.Sort(util.Posting(postings))
 
-        data, err = json.Marshal(postings)
+        pos := sort.Search(len(postings), func(i int) bool {
+            return postings[i] == internalId
+        })
 
-        i.DB.Set(-1, []byte(k), []byte(data))
+        postings = append(postings[:pos], postings[(pos+1):]...)
+        data, _ = json.Marshal(postings)
+
+        i.DB.Set(-1, []byte(k), data)
     }
+
+    for k, _ := range addTokens {
+        data, ret := i.DB.Get([]byte(k)) // fix
+
+        postings := make(util.Posting, 1000)
+
+        if ret == 0 {
+            json.Unmarshal(data, postings)
+        }
+
+        pos := sort.Search(len(postings), func(i int) bool {
+            return postings[i] >= internalId
+        })
+
+        copy(postings[pos+1:], postings[pos:])
+        postings[pos] = internalId
+
+        data, _ = json.Marshal(postings)
+
+        i.DB.Set(-1, []byte(k), data)
+    }
+
+}
+
+func (i *Index) internalUpdateDocument() {
+
 }
 
 func (i *Index) DeleteDocuments(documents []document.Document) {
@@ -169,4 +229,29 @@ func (i *Index) validateDocuments(documents []document.Document) bool {
     }
 
     return true
+}
+
+func CheckTokensAndSplit(oldTokens map[string]string, newTokens map[string]string) (del map[string]string, add map[string]string) {
+    if len(oldTokens) == 0 {
+        add = newTokens
+        return
+    }
+
+    if len(newTokens) == 0 {
+        return
+    }
+
+    for k, _ := range oldTokens {
+        if _, ok := newTokens[k]; !ok {
+            del[k] = ""
+        }
+    }
+
+    for k, _ := range newTokens {
+        if _, ok := oldTokens[k]; !ok {
+            add[k] = ""
+        }
+    }
+
+    return
 }

@@ -9,8 +9,8 @@ import (
 
 const (
     MaxLineCount  = 256
-    BaseNodeCount = 10000  //1000000
-    MaxNodeCount  = 100000 // 100000000
+    BaseNodeCount = 1000000
+    MaxNodeCount  = 100000000
 )
 
 type TrieState struct {

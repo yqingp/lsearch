@@ -93,6 +93,7 @@ func Recover(baseStorePath string) map[string]*Index {
         index.Meta = recoverIndexMeta(storePath)
         indexes[name] = index
         log.Println(index.DB.RecordNum())
+        log.Println(index.DocumentDB.RecordNum())
     }
 
     return indexes

@@ -60,7 +60,7 @@ func (e *Engine) RecoverIndexes() {
     }
 }
 
-func (e *Engine) ViewIndex(name string) (*index.IndexMeta, error) {
+func (e *Engine) ViewIndex(name string) (interface{}, error) {
     index, ok := e.indexes[name]
 
     if !ok {

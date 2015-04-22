@@ -1,7 +1,6 @@
 package engine
 
 import (
-    "github.com/yqingp/lsearch/index"
     "github.com/yqingp/lsearch/mapping"
 )
 
@@ -21,7 +20,7 @@ post structure
 	]
 }
 */
-func (e *Engine) MappingHandler(body []byte) (*index.IndexMeta, error) {
+func (e *Engine) MappingHandler(body []byte) (interface{}, error) {
     mapping, err := mapping.New(body)
     if err != nil {
         return nil, err

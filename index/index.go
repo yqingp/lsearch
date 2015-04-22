@@ -22,7 +22,7 @@ type Index struct {
     DocumentNum int
     DB          *store.DB
     DocumentDB  *store.DB
-    Meta        *IndexMeta
+    Meta        *Meta
     Analyzer    *analyzer.Analyzer
 }
 
@@ -45,11 +45,11 @@ func New(mapping *mapping.Mapping, baseStorePath string) *Index {
     index := &Index{
         Name:       mapping.Name,
         DB:         db,
-        Meta:       &IndexMeta{},
+        Meta:       &Meta{},
         DocumentDB: documentDb,
     }
 
-    index.Meta = newIndexMeta(storePath, mapping)
+    index.Meta = newMeta(storePath, mapping)
 
     return index
 }
@@ -90,7 +90,7 @@ func Recover(baseStorePath string) map[string]*Index {
         }
 
         storePath := filepath.Join(baseStorePath, name)
-        index.Meta = recoverIndexMeta(storePath)
+        index.Meta = recoverMeta(storePath)
         indexes[name] = index
         log.Println(index.DB.RecordNum())
         log.Println(index.DocumentDB.RecordNum())
@@ -218,7 +218,7 @@ func (i *Index) Remove() {
     }
 }
 
-func (i *Index) View() *IndexMeta {
+func (i *Index) View() *Meta {
     return i.Meta
 }
 

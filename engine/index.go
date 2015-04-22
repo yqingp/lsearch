@@ -103,7 +103,7 @@ func (e *Engine) Index(body []byte) interface{} {
     }
     indexRequest.Index = index
 
-    Logger.Println(indexRequest)
+    // Logger.Println(indexRequest)
 
     e.IndexRequests <- indexRequest
     <-indexRequest.Status
@@ -121,7 +121,7 @@ func ParseIndexRequest(body []byte) (*IndexRequest, error) {
         return nil, errors.New("decode request error")
     }
 
-    Logger.Println(request)
+    // Logger.Println(request)
     return request, nil
 }
 

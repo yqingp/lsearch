@@ -27,7 +27,8 @@ func (self *DB) initLogger() error {
 
     self.loggerFile = f
 
-    Logger = log.New(f, "[LSearch][DB]:", log.Llongfile|log.Ldate|log.Ltime)
+    // Logger = log.New(f, "[LSearch][DB]:", log.Llongfile|log.Ldate|log.Ltime)
+    Logger = log.New(os.Stdout, "[LSearch][DB]:", log.Llongfile|log.Ldate|log.Ltime)
     return nil
 }
 

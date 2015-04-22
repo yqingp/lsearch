@@ -102,6 +102,7 @@ func (d *DB) popBlockQueue(blocksCountNum int) *BlockQueue {
                 blockQueues[pos].index = tmpBlockQueue.index
                 blockQueues[pos].blockId = tmpBlockQueue.blockId
             } else {
+                buf = make([]byte, SizeOfBlockQueue)
                 offsetSize = int64(blockQueues[pos].blockId * BaseDbSize)
                 _, err := d.indexIO.file.ReadAt(buf[:SizeOfBlockQueue], offsetSize)
 
@@ -192,9 +193,9 @@ func (d *DB) pushBlockQueue(index, blockId, blockSize int) {
                     blockQueue.blockId = d.blockQueues[pos].blockId
                 } else {
                     enc := gob.NewEncoder(&buf)
-                    enc.Encode(&blockQueue)
                     blockQueue.index = d.blockQueues[pos].index
                     blockQueue.blockId = d.blockQueues[pos].blockId
+                    enc.Encode(&blockQueue)
                     writeSize, err := d.indexIO.file.WriteAt(buf.Bytes()[:SizeOfBlockQueue], int64(blockId*BaseDbSize))
                     if err != nil || writeSize < 0 {
                         Logger.Fatal("write index file error")

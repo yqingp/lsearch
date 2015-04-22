@@ -21,7 +21,7 @@ func doIndex(e *Engine) {
         switch request.Action {
         case "create":
             {
-                Logger.Println(request.Documents)
+                // Logger.Println(request.Documents)
                 results, err := request.Index.AddDocuments(request.Documents)
                 request.Results = results
                 request.Error = err

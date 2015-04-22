@@ -182,7 +182,7 @@ func (d *DB) internalSet(id int, value []byte) int {
             indexes[id].dataLen = valueLen
             ret = id
         } else {
-            _, err := d.indexIO.file.WriteAt(value, int64(indexes[id].blockId*BaseDbSize))
+            _, err := d.IOs[index].file.WriteAt(value, int64(indexes[id].blockId*BaseDbSize))
             if err != nil {
                 indexes[id].dataLen = 0
                 Logger.Fatal("write index error")
@@ -235,6 +235,7 @@ func (d *DB) GetAndReturnInternalId(key []byte) ([]byte, int) {
     if err != nil {
         return nil, -1
     }
+    // Logger.Println(id)
 
     val, _ := d.GetByInternalId(id)
 
@@ -255,6 +256,7 @@ func (d *DB) GetByInternalId(id int) (value []byte, ret int) {
     }
 
     dataLen := indexes[id].dataLen
+
     blockId := indexes[id].blockId
     index := indexes[id].index
 
@@ -266,6 +268,7 @@ func (d *DB) GetByInternalId(id int) (value []byte, ret int) {
             value = d.IOs[index].mmap[offsetSize:(offsetSize + dataLen)]
             return value, 0
         } else {
+            value = make([]byte, dataLen)
             readSize, err := d.IOs[index].file.ReadAt(value[:dataLen], int64(offsetSize))
             if err != nil || readSize != dataLen {
                 Logger.Fatal("read index error")

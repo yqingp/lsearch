@@ -49,6 +49,7 @@ func (d *DB) initIOs() {
 
         dbFileName := strconv.Itoa(i) + DbFileSuffix
         currentDbFilePath := filepath.Join(currentDbPath, dbFileName)
+        // Logger.Println(currentDbFilePath)
 
         d.IOs[i].mutex = &sync.Mutex{}
         file, err := os.OpenFile(currentDbFilePath, os.O_CREATE|os.O_RDWR, 0644)

@@ -16,7 +16,7 @@ type Index struct {
 
 func (d *DB) initIndex() {
     indexFilePath := filepath.Join(d.baseDir, IndexFileName)
-
+    // Logger.Println(indexFilePath)
     f, err := os.OpenFile(indexFilePath, os.O_CREATE|os.O_RDWR, 0664)
     if err != nil {
         Logger.Fatal(err)
@@ -40,7 +40,6 @@ func (d *DB) initIndex() {
     }
 
     d.indexes = (*[MaxIndexSize]Index)(unsafe.Pointer(&d.indexIO.mmap[0]))[:MaxIndexSize]
-
     if fstat.Size() == 0 {
         d.indexIO.end = BaseIndexSize * SizeofIndex
 
@@ -49,5 +48,6 @@ func (d *DB) initIndex() {
         }
     }
 
+    // Logger.Println(d.indexes[0].index)
     d.indexIO.old = d.indexIO.end
 }

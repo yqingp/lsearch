@@ -3,7 +3,7 @@ package main
 import (
     "github.com/yqingp/lsearch/engine"
     // "log"
-    "os"
+    // "os"
     "testing"
 )
 
@@ -40,5 +40,5 @@ func TestIndex(t *testing.T) {
 
     lsearch.Index(indexText)
 
-    os.RemoveAll("dbpath")
+    // os.RemoveAll("dbpath")
 }

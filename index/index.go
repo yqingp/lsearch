@@ -13,6 +13,7 @@ import (
     "os"
     "path/filepath"
     "sort"
+    "sync"
     // "time"
 )
 
@@ -24,6 +25,7 @@ type Index struct {
     DocumentDB  *store.DB
     Meta        *Meta
     Analyzer    *analyzer.Analyzer
+    mutex       *sync.Mutex
 }
 
 var Logger *log.Logger = log.New(os.Stdout, "DEGUG", log.Llongfile|log.Ldate|log.Ltime)
@@ -47,6 +49,7 @@ func New(mapping *mapping.Mapping, baseStorePath string) *Index {
         DB:         db,
         Meta:       &Meta{},
         DocumentDB: documentDb,
+        mutex:      &sync.Mutex{},
     }
 
     index.Meta = newMeta(storePath, mapping)
@@ -87,6 +90,7 @@ func Recover(baseStorePath string) map[string]*Index {
             Name:       name,
             DB:         db,
             DocumentDB: documentDb,
+            mutex:      &sync.Mutex{},
         }
 
         storePath := filepath.Join(baseStorePath, name)
@@ -112,6 +116,9 @@ func (i *Index) AddDocuments(documents []document.Document) (interface{}, error)
 }
 
 func (i *Index) internalAddDocument(doc document.Document) {
+    i.mutex.Lock()
+    defer i.mutex.Unlock()
+
     doc.InitTokens()
 
     doc.Analyze(i.Analyzer)
@@ -124,8 +131,11 @@ func (i *Index) internalAddDocument(doc document.Document) {
 
     md5Val := md5.Sum(data)
 
+    // Logger.Println(md5Val)
+
     exist := false
 
+    // Logger.Println(id)
     oldData, internalId := i.DocumentDB.GetAndReturnInternalId([]byte(id))
     if internalId > 0 {
         exist = true
@@ -137,7 +147,11 @@ func (i *Index) internalAddDocument(doc document.Document) {
 
     if exist {
         oldMd5Val := md5.Sum(oldData)
+
+        // Logger.Println(oldMd5Val)
+
         if oldMd5Val == md5Val {
+            Logger.Println("==== md5 equal, same document")
             return
         }
 

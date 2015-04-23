@@ -31,8 +31,8 @@ func (e *Engine) Init() {
     e.analyzer.Init()
     e.initMutex()
     e.RecoverIndexes()
-    e.initIndexWorkers()
     e.startIndexWorkers()
+    e.startSearchWorkers()
     e.isInit = true
 }
 

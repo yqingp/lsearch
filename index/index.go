@@ -14,7 +14,6 @@ import (
     "path/filepath"
     "sort"
     "sync"
-    // "time"
 )
 
 const (
@@ -187,7 +186,7 @@ func (i *Index) internalAddDocument(doc document.Document) {
         data, _ := i.DB.Get([]byte(k)) // fix
 
         postings := make(util.Posting, 1000)
-        json.Unmarshal(data, postings)
+        json.Unmarshal(data, &postings)
 
         pos := sort.Search(len(postings), func(i int) bool {
             return postings[i] == internalId
@@ -209,7 +208,7 @@ func (i *Index) internalAddDocument(doc document.Document) {
         postings := make(util.Posting, 1000)
 
         if ret == 0 {
-            json.Unmarshal(data, postings)
+            json.Unmarshal(data, &postings)
         }
 
         pos := 0

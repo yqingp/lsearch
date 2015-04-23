@@ -4,11 +4,8 @@ import (
     "runtime"
 )
 
-func (e *Engine) initIndexWorkers() {
-    e.IndexRequests = make(chan *IndexRequest, runtime.NumCPU())
-}
-
 func (e *Engine) startIndexWorkers() {
+    e.IndexRequests = make(chan *IndexRequest, runtime.NumCPU())
     cpuNum := runtime.NumCPU()
     for i := 0; i < cpuNum; i++ {
         go doIndex(e)

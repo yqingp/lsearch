@@ -17,18 +17,24 @@ import (
     // "time"
 )
 
+const (
+    IndexRWMutextCount     = 256
+    IndexPostingMutexCount = 256
+)
+
 type Index struct {
-    Id          int
-    Name        string
-    DocumentNum int
-    DB          *store.DB
-    DocumentDB  *store.DB
-    Meta        *Meta
-    Analyzer    *analyzer.Analyzer
-    mutex       *sync.Mutex
+    Id           int
+    Name         string
+    DocumentNum  int
+    DB           *store.DB
+    DocumentDB   *store.DB
+    Meta         *Meta
+    Analyzer     *analyzer.Analyzer
+    idMutex      [IndexRWMutextCount]*sync.Mutex
+    postingMutex [IndexPostingMutexCount]*sync.Mutex
 }
 
-var Logger *log.Logger = log.New(os.Stdout, "DEGUG", log.Llongfile|log.Ldate|log.Ltime)
+var Logger *log.Logger = log.New(os.Stdout, "[DEGUG]", log.Lshortfile|log.Ldate|log.Ltime)
 
 func New(mapping *mapping.Mapping, baseStorePath string) *Index {
     storePath := initStorePath(baseStorePath, mapping.Name)
@@ -49,7 +55,14 @@ func New(mapping *mapping.Mapping, baseStorePath string) *Index {
         DB:         db,
         Meta:       &Meta{},
         DocumentDB: documentDb,
-        mutex:      &sync.Mutex{},
+    }
+
+    for i := 0; i < IndexRWMutextCount; i++ {
+        index.idMutex[i] = &sync.Mutex{}
+    }
+
+    for i := 0; i < IndexPostingMutexCount; i++ {
+        index.postingMutex[i] = &sync.Mutex{}
     }
 
     index.Meta = newMeta(storePath, mapping)
@@ -90,14 +103,19 @@ func Recover(baseStorePath string) map[string]*Index {
             Name:       name,
             DB:         db,
             DocumentDB: documentDb,
-            mutex:      &sync.Mutex{},
+        }
+
+        for i := 0; i < IndexRWMutextCount; i++ {
+            index.idMutex[i] = &sync.Mutex{}
+        }
+
+        for i := 0; i < IndexPostingMutexCount; i++ {
+            index.postingMutex[i] = &sync.Mutex{}
         }
 
         storePath := filepath.Join(baseStorePath, name)
         index.Meta = recoverMeta(storePath)
         indexes[name] = index
-        log.Println(index.DB.RecordNum())
-        log.Println(index.DocumentDB.RecordNum())
     }
 
     return indexes
@@ -116,13 +134,13 @@ func (i *Index) AddDocuments(documents []document.Document) (interface{}, error)
 }
 
 func (i *Index) internalAddDocument(doc document.Document) {
-    i.mutex.Lock()
-    defer i.mutex.Unlock()
+    id := doc.Id
+
+    i.lockId([]byte(id))
+    defer i.unlockId([]byte(id))
 
     doc.InitTokens()
-
     doc.Analyze(i.Analyzer)
-    id := doc.Id
 
     data, err := doc.Encode()
     if err != nil {
@@ -130,12 +148,8 @@ func (i *Index) internalAddDocument(doc document.Document) {
     }
 
     md5Val := md5.Sum(data)
-
-    // Logger.Println(md5Val)
-
     exist := false
 
-    // Logger.Println(id)
     oldData, internalId := i.DocumentDB.GetAndReturnInternalId([]byte(id))
     if internalId > 0 {
         exist = true
@@ -147,8 +161,6 @@ func (i *Index) internalAddDocument(doc document.Document) {
 
     if exist {
         oldMd5Val := md5.Sum(oldData)
-
-        // Logger.Println(oldMd5Val)
 
         if oldMd5Val == md5Val {
             Logger.Println("==== md5 equal, same document")
@@ -171,6 +183,7 @@ func (i *Index) internalAddDocument(doc document.Document) {
     delTokens, addTokens := CheckTokensAndSplit(oldTokens, doc.Tokens())
 
     for k, _ := range delTokens {
+        i.lockToken([]byte(k))
         data, _ := i.DB.Get([]byte(k)) // fix
 
         postings := make(util.Posting, 1000)
@@ -184,9 +197,13 @@ func (i *Index) internalAddDocument(doc document.Document) {
         data, _ = json.Marshal(postings)
 
         i.DB.Set(-1, []byte(k), data)
+
+        i.unlockToken([]byte(k))
     }
 
     for k, _ := range addTokens {
+        i.lockToken([]byte(k))
+
         data, ret := i.DB.Get([]byte(k)) // fix
 
         postings := make(util.Posting, 1000)
@@ -196,7 +213,6 @@ func (i *Index) internalAddDocument(doc document.Document) {
         }
 
         pos := 0
-        Logger.Println(len(postings))
         if postings[0] > 0 {
             pos = sort.Search(len(postings), func(i int) bool {
                 return postings[i] >= internalId
@@ -209,6 +225,8 @@ func (i *Index) internalAddDocument(doc document.Document) {
         data, _ = json.Marshal(postings)
 
         i.DB.Set(-1, []byte(k), data)
+
+        i.unlockToken([]byte(k))
     }
 
 }
@@ -280,4 +298,20 @@ func CheckTokensAndSplit(oldTokens map[string]string, newTokens map[string]strin
     }
 
     return
+}
+
+func (i *Index) lockToken(token []byte) {
+    i.postingMutex[util.MurmurHash3(token)%IndexPostingMutexCount].Lock()
+}
+
+func (i *Index) unlockToken(token []byte) {
+    i.postingMutex[util.MurmurHash3(token)%IndexPostingMutexCount].Unlock()
+}
+
+func (i *Index) lockId(id []byte) {
+    i.idMutex[util.MurmurHash3(id)%IndexRWMutextCount].Lock()
+}
+
+func (i *Index) unlockId(id []byte) {
+    i.idMutex[util.MurmurHash3(id)%IndexRWMutextCount].Unlock()
 }

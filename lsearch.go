@@ -122,6 +122,11 @@ func Routes() {
 
     })
 
+    // 查看索引状态统计
+    Router.GET("/_status", func(c *gin.Context) {
+
+    })
+
     // 根据ID同时查询多条数据 多个索引下的数据
     //     "docs" : [
     //     {
@@ -165,6 +170,24 @@ func Routes() {
 
     // 批量操作
     Router.POST("/_bulk", func(c *gin.Context) {
+
+    })
+
+    // 查询条件 删除
+    Router.DELETE("/:name/_query", func(c *gin.Context) {
+
+    })
+
+    // 查询条件 更新
+    Router.POST("/:name/_query", func(c *gin.Context) {
+
+    })
+
+    Router.POST("/:name/_search", func(c *gin.Context) {
+
+    })
+
+    Router.GET("/:name/_search", func(c *gin.Context) {
 
     })
 

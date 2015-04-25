@@ -94,7 +94,6 @@ func indexDocumentsHandler(rw http.ResponseWriter, req *http.Request) {
 func Routes() {
     // 创建索引
     Router.POST("/:name", func(c *gin.Context) {
-
     })
 
     // 更新索引

@@ -7,7 +7,7 @@ import (
 	"github.com/yqingp/lsearch/analyzer"
 	"github.com/yqingp/lsearch/document"
 	"github.com/yqingp/lsearch/mapping"
-	"github.com/yqingp/lsearch/store"
+	store "github.com/yqingp/lsearch/store/db"
 	"github.com/yqingp/lsearch/util"
 	"log"
 	"os"

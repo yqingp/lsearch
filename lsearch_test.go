@@ -1,11 +1,11 @@
 package main
 
 import (
-    "github.com/yqingp/lsearch/engine"
-    "log"
-    // "os"
-    "encoding/json"
-    "testing"
+	"github.com/yqingp/lsearch/engine"
+	// "log"
+	// "os"
+	// "encoding/json"
+	"testing"
 )
 
 var mappingText []byte = []byte(`
@@ -38,17 +38,17 @@ var searchText []byte = []byte(`
 `)
 
 func TestIndex(t *testing.T) {
-    var lsearch engine.Engine
-    lsearch.Init()
-    _ = mappingText
-    _ = indexText
-    _ = searchText
-    // lsearch.MappingHandler(mappingText)
+	var lsearch engine.Engine
+	lsearch.Init()
+	_ = mappingText
+	_ = indexText
+	_ = searchText
+	// lsearch.MappingHandler(mappingText)
 
-    // lsearch.Index(indexText)
+	// lsearch.Index(indexText)
 
-    a, _ := json.Marshal(lsearch.Search(searchText))
-    log.Println(string(a))
+	// a, _ := json.Marshal(lsearch.Search(searchText))
+	// log.Println(string(a))
 
-    // os.RemoveAll("dbpath")
+	// os.RemoveAll("dbpath")
 }

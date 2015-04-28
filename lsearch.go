@@ -10,6 +10,7 @@ import (
     "runtime"
 )
 
+// base lsearch 
 var LSearch engine.Engine
 
 var Router *gin.Engine

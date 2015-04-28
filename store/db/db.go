@@ -280,6 +280,37 @@ func (d *DB) GetByInternalId(id int) (value []byte, ret int) {
 	return value, 0
 }
 
-func (d *DB) Del() {
+func (d *DB) Del(key []byte) (int, error) {
+	if key == nil {
+		return -1, errors.New("key is blank")
+	}
+	id, err := d.keyMapTrie.Set(key)
 
+	if err != nil {
+		return -1, err
+	}
+
+	return id, nil
+
+}
+
+func (d *DB) DelById(id int) int {
+	if id >= 0 && id <= d.state.maxId {
+		indexes := d.indexes
+		index := indexes[id]
+		if index.blockSize > 0 {
+			d.pushBlockQueue(index.index, index.blockId, index.blockSize)
+
+			d.lockId(id)
+			defer d.unlockId(id)
+
+			index.blockSize = 0
+			index.blockId = 0
+			index.dataLen = 0
+		}
+		index.updateTime = time.Now().UnixNano()
+		return id
+	}
+
+	return -1
 }

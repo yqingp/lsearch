@@ -429,6 +429,7 @@ func (d *DB) GetTag(id int) int {
 		d.indexMutex.Lock()
 		defer d.indexMutex.Unlock()
 		d.checkIndexIOWithId(id)
+
 		return indexes[id].tag
 	}
 	return -1

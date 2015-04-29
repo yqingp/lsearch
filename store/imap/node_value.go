@@ -1,5 +1,6 @@
 package imap
 
 type NodeValue struct {
-	/* data */
+	val int32
+	off int
 }
